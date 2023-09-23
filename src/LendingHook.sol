@@ -9,12 +9,14 @@ import {IPoolManager} from "../lib/v4-core/contracts/interfaces/IPoolManager.sol
 import {PoolId, PoolIdLibrary} from "../lib/v4-core/contracts/types/PoolId.sol";
 import {PoolKey} from "../lib/v4-core/contracts/types/PoolKey.sol";
 import {BalanceDelta} from "../lib/v4-core/contracts/types/BalanceDelta.sol";
+import {TickMath} from "../lib/v4-core/contracts/libraries/TickMath.sol";
+import {LendingPool} from "../src/lendingPool/LendingPool.sol";
 
 contract LendingHook is BaseHook {
     using PoolIdLibrary for PoolId;
 
     // Address of the lending pool
-    address public lendingPool;
+    LendingPool public lendingPool;
 
     struct LiquidityRange {
         int24 tickLower; // The lower tick of the range
@@ -30,7 +32,7 @@ contract LendingHook is BaseHook {
         IPoolManager _poolManager,
         address _lendingPool
     ) BaseHook(_poolManager) {
-        lendingPool = _lendingPool;
+        lendingPool = LendingPool(_lendingPool);
     }
 
     // Required override function for BaseHook to let the PoolManager know which hooks are implemented
@@ -60,22 +62,29 @@ contract LendingHook is BaseHook {
         ];
 
         // Step 1: Get the full tuple
-        (uint160 sqrtPriceX96FromTuple, , , ) = poolManager.getSlot0(
-            PoolIdLibrary.toId(poolKey)
-        );
+        (uint160 sqrtPriceX96FromTuple, int24 currentTick, , ) = poolManager
+            .getSlot0(PoolIdLibrary.toId(poolKey));
 
-        // Step 2: Use the extracted value
+        // Step 2: Use the extracted values
         uint160 sqrtPriceX96 = sqrtPriceX96FromTuple;
 
-        uint256 estimatedPriceAfterSwap = estimatePriceAfterSwap(
+        uint160 adjustedSqrtPriceX96 = estimatePriceAfterSwap(
             sqrtPriceX96,
             params.amountSpecified,
             params.zeroForOne
         );
 
+        // Convert tickLower and tickUpper to their respective sqrtPriceX96 values
+        uint160 lowerSqrtPriceX96 = TickMath.getSqrtRatioAtTick(
+            range.tickLower
+        );
+        uint160 upperSqrtPriceX96 = TickMath.getSqrtRatioAtTick(
+            range.tickUpper
+        );
+
         if (
-            estimatedPriceAfterSwap < range.tickLower ||
-            estimatedPriceAfterSwap > range.tickUpper
+            adjustedSqrtPriceX96 < lowerSqrtPriceX96 ||
+            adjustedSqrtPriceX96 > upperSqrtPriceX96
         ) {
             // If the estimated price after the swap is outside the range, get all the liquidity provided
             uint256 liquidityToRetrieve = _retrieveLiquidity(
@@ -141,13 +150,17 @@ contract LendingHook is BaseHook {
         uint160 currentSqrtPriceX96,
         int256 amountSpecified,
         bool zeroForOne
-    ) internal pure returns (uint256) {
+    ) internal pure returns (uint160) {
         // Placeholder logic: This is a very naive estimation and is likely not accurate.
         uint256 priceImpact = uint256(amountSpecified) / 10000; // Assuming 0.01% price impact per unit amount
+        uint160 adjustedSqrtPriceX96;
+
         if (zeroForOne) {
-            return uint256(currentSqrtPriceX96) - priceImpact;
+            adjustedSqrtPriceX96 = currentSqrtPriceX96 - uint160(priceImpact);
         } else {
-            return uint256(currentSqrtPriceX96) + priceImpact;
+            adjustedSqrtPriceX96 = currentSqrtPriceX96 + uint160(priceImpact);
         }
+
+        return adjustedSqrtPriceX96;
     }
 }
