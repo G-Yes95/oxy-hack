@@ -44,4 +44,13 @@ contract LendingPool is
     event PoolTokensMinted(address indexed lender, uint256 poolTokens);
     event Withdrawal(address indexed lender, uint256 amount);
     event TokenBurned(address indexed lender, uint256 tokenAmount);
+
+    /********************************************************************************************/
+    /*                                       FUNCTION MODIFIERS                                 */
+    /********************************************************************************************/
+
+    modifier onlyLoanRouter() {
+        require(msg.sender == loanRouter, "Caller is not authorized");
+        _;
+    }
 }
