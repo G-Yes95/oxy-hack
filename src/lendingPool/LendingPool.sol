@@ -14,7 +14,9 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 contract LendingPool is ERC20("PoolToken", "PT") {
     using SafeERC20 for IERC20;
 
-    // DATA VARIABLES
+    /********************************************************************************************/
+    /*                                       DATA VARIABLES                                     */
+    /********************************************************************************************/
 
     // This represents the stablecoin (e.g., USDC) being supplied to and borrowed from the pool.
     IERC20 public stableCoin;
@@ -31,7 +33,9 @@ contract LendingPool is ERC20("PoolToken", "PT") {
     // Variable to keep track of the total debt owed to the pool
     uint256 public totalDebt;
 
-    // EVENT DEFINITIONS
+    /********************************************************************************************/
+    /*                                    EVENT DEFINITIONS                                     */
+    /********************************************************************************************/
 
     event Deposited(address indexed user, uint256 amount);
     event Borrowed(address indexed borrower, uint256 amount);
@@ -46,7 +50,9 @@ contract LendingPool is ERC20("PoolToken", "PT") {
         _;
     }
 
-    // CONSTRUCTOR
+    /********************************************************************************************/
+    /*                                       CONSTRUCTOR                                        */
+    /********************************************************************************************/
 
     constructor(
         address _stableCoin,
@@ -61,7 +67,9 @@ contract LendingPool is ERC20("PoolToken", "PT") {
         totalDebt = 0;
     }
 
-    // UTILITY FUNCTIONS
+    /********************************************************************************************/
+    /*                                   UTILITY FUNCTIONS                                      */
+    /********************************************************************************************/
 
     /**
      * @dev This function allows the owner to set the address of the loanRouter.
@@ -84,7 +92,9 @@ contract LendingPool is ERC20("PoolToken", "PT") {
         interestRateStrategy = IInterestRateStrategy(_interestRateStrategy);
     }
 
-    // SMART CONTRACT FUNCTIONS
+    /********************************************************************************************/
+    /*                                   CONTRACT FUNCTIONS                                     */
+    /********************************************************************************************/
 
     /**
      * @dev Called by lender to deposit funds into the pool.
