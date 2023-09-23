@@ -1,1 +1,33 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
 
+//imports
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+
+contract PrincipalToken is ERC1155 {
+    error ER1155NonApprovedMinter();
+    error ER1155NonApprovedBurner();
+
+    address immutable loanFactory;
+
+    constructor(address _loanFactory) ERC1155("PRINCIPAL TOKEN") {
+        loanFactory = _loanFactory;
+    }
+
+    function mint(address account, uint256 id, uint256 value) public {
+        if (_msgSender() != loanFactory) {
+            revert ER1155NonApprovedMinter();
+        }
+
+        bytes memory emptyBytes = new bytes(0);
+        _mint(account, id, value, emptyBytes);
+    }
+
+    function burn(address account, uint256 id, uint256 value) public {
+        if (id != uint256(uint160(_msgSender()))) {
+            revert ER1155NonApprovedBurner();
+        }
+
+        _burn(account, id, value);
+    }
+}
