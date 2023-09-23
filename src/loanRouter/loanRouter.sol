@@ -11,10 +11,14 @@ interface ILendingPool {
     function collectPayment(address _loanContract, uint256 _tokenId, uint256 _amount) external;
 }
 // iLoanContract
+interface ILoanContract { 
+    function convert() external; 
+    function repay(uint256 _amount) external; 
+}
 // iLoanFactory
 
 interface ILoanFactory {
-    function create(address _borrower, address _lendingPool, uint256 _amount, uint256 _collateralQty, uint256 _paymentFrequency, uint256 _numPayments )
+    function create(address _borrower, address _lendingPool, address _collateralToken, uint256 _amount, uint256 _collateralQty, uint256 _paymentFrequency, uint256 _numPayments )
         external
         returns (address);
 }
@@ -45,7 +49,7 @@ contract LoanRouter {
             _amount * IERC20Metadata(_asset).decimals() / IERC20Metadata(_rawCollateral).decimals() / 2;
         uint256 collateralQty = IButtonToken(buttonMapping[_rawCollateral]).underlyingToWrapper(_amount);
         // clone and init loanContract
-        address clone = ILoanFactory(_loanFactory).create(msg.sender, _lendingPool, _liquidityTaken, collateralQty, _paymentFrequency, _numPayments);
+        address clone = ILoanFactory(_loanFactory).create(msg.sender, _lendingPool,buttonMapping[_rawCollateral],  _liquidityTaken, collateralQty, _paymentFrequency, _numPayments);
 
         // button up the collateralTokens into the new loan
         IButtonToken(buttonMapping[_rawCollateral]).mintFor(clone, _amount);
@@ -56,6 +60,7 @@ contract LoanRouter {
 
     function convertAndCollect(address _loanContract, address _lendingPool) public {
         // call convert on LoanContract
+        ILoanContract(_loanContract).convert();
         // call collect on lendingPool
         uint256 _amount = ILendingPool(_lendingPool).stableCoin().balanceOf(_loanContract);
         ILendingPool(_lendingPool).collectPayment(_loanContract, uint256(uint160(_loanContract)), _amount);
@@ -70,9 +75,10 @@ contract LoanRouter {
         TransferHelper.safeApprove(_stablecoin, _loanContract, _amount);
 
         // call repay on loanContract
+        ILoanContract(_loanContract).repay(_amount);
 
         // call collect on lendingPool
         ILendingPool(_lendingPool).collectPayment(_loanContract, uint256(uint160(_loanContract)), _amount);
-        // unwrap collateral to borrower
+  
     }
 }

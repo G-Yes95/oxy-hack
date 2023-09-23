@@ -33,6 +33,7 @@ interface ILendingPool {
     function totalDebt() external view returns (uint256);
 }
 
+
 contract LoanFactory {
     address public immutable template;
     IInterestRateStrategy public immutable interestRateStrategy;
@@ -47,7 +48,7 @@ contract LoanFactory {
     }
 
     //modifier for only loanRouter
-    function create(address _borrower, address _lendingPool, uint256 _amount, uint256 _collateralQty, uint256 _paymentFrequency, uint256 _numPayments)
+    function create(address _borrower, address _lendingPool, address _collateralToken, uint256 _amount, uint256 _collateralQty, uint256 _paymentFrequency, uint256 _numPayments)
         public
         returns (address)
     {
@@ -65,7 +66,8 @@ contract LoanFactory {
         // mint debtTokens to borrower
         debtToken.mint(_borrower, uint256(uint160(clone)), dQty);
 
-        // LoanContract.init(_stableCoin, _collateralToken, _principalToken, _debtToken);
+        LoanContract(clone).init(_asset, _collateralToken, dQty, _amount, _collateralQty, _numPayments);
+
         return clone;
     }
 }
