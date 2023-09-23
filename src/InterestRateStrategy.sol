@@ -121,4 +121,29 @@ contract InterestRateStrategy {
 
         return (vars.currentLiquidityRate, vars.currentStableBorrowRate);
     }
+
+    /**
+     * @notice Adds the respective risk spreads on top of the base interest rates in order to calculate the final rates.
+     * @param paysCoupon Flag that indicates if the user is paying the interest rate coupon
+     * @param isCollateralInsured Flag that indicates if the collateral is insured
+     * @return liquidityRate The liquidity rate expressed in rays - The liquidity rate is the rate paid to lenders on the protocol
+     * @return finalStableBorrowRate The stable borrow rate expressed in rays after adding the premiums
+     */
+    function riskAdjustedRate(
+        bool paysCoupon,
+        bool isCollateralInsured
+    ) external pure returns (uint256, uint256) {
+        CalcInterestRatesLocalVars memory vars;
+
+        uint256 couponPremium = paysCoupon ? 0 : vars.couponPremiumRate;
+        uint256 collateralPremium = isCollateralInsured
+            ? 0
+            : vars.collateralInsurancePremiumRate;
+
+        uint256 finalStableBorrowRate = vars.currentStableBorrowRate +
+            couponPremium +
+            collateralPremium;
+
+        return (vars.currentLiquidityRate, finalStableBorrowRate);
+    }
 }
