@@ -14,7 +14,7 @@ interface ILoanContract {
      * @param _initialCollateralAmount the collateral token amount
      * @param _numOfPayments the number of payments
      */
-    function init(address _stableCoin, address _collateralToken, uint256 _initialDebtAmount, uint256 _initialPrincipalAmount, uint256 _initialCollateralAmount, uint256 _numOfPayments)
+    function init(address _lendingPool, address _stableCoin, address _collateralToken, uint256 _initialDebtAmount, uint256 _initialPrincipalAmount, uint256 _initialCollateralAmount, uint256 _numOfPayments)
         external;
 
     /**
@@ -35,20 +35,19 @@ interface ILoanContract {
     function convert() external;
 
     /**
-     * @notice Sends stable to LendingPool
-     * 1. Calculates the convertable amount
-     * 2. Swaps the convertable amount with SwapRouter
+     * @notice Sends stable to LendingPool and returns the collateral
      * @dev expects to be called from LendingPool
+     * @param _amount amount of collateral to redeem
      */
-    // function redeem(uint256 _amount) external;
+    function redeem(uint256 _amount) external;
 
-
-    function calculateMaxRedeemableAmount() external view;
 
     /**
-     * @notice Calculates the max allowable amount to convert
-     * 1. Calculates the convertable amount
-     * 2. Swaps the convertable amount with SwapRouter
+     * @return the max PrincipalTokens that can be redeemed at current moment
+     */
+    function calculateMaxRedeemableAmount() external view returns (uint256);
+
+    /**
      * @return the max allowable amount to convert
      */
     function calculateMaxConvertibleAmount() external view returns(uint256);

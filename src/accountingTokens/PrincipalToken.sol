@@ -9,6 +9,7 @@ contract PrincipalToken is ERC1155 {
     error ER1155NonApprovedBurner();
 
     address immutable loanFactory;
+    mapping(uint256 => uint256) public totalSupply;
 
     constructor(address _loanFactory) ERC1155("PRINCIPAL TOKEN") {
         loanFactory = _loanFactory;
@@ -21,6 +22,8 @@ contract PrincipalToken is ERC1155 {
 
         bytes memory emptyBytes = new bytes(0);
         _mint(account, id, value, emptyBytes);
+        totalSupply[id] += value;
+
     }
 
     function burn(address account, uint256 id, uint256 value) public {
@@ -29,5 +32,7 @@ contract PrincipalToken is ERC1155 {
         }
 
         _burn(account, id, value);
+        totalSupply[id] -= value;
+
     }
 }

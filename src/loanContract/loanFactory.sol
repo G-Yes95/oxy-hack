@@ -66,7 +66,7 @@ contract LoanFactory {
         // mint debtTokens to borrower
         debtToken.mint(_borrower, uint256(uint160(clone)), dQty);
 
-        LoanContract(clone).init(_asset, _collateralToken, dQty, _amount, _collateralQty, _numPayments);
+        LoanContract(clone).init(_lendingPool, _asset, _collateralToken, dQty, _amount, _collateralQty, _paymentFrequency, _numPayments);
 
         return clone;
     }
