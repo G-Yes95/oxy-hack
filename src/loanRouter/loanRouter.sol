@@ -11,7 +11,6 @@ import "@buttonwood-protocol/button-wrappers/contracts/interfaces/IButtonToken.s
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 
 contract LoanRouter {
-
     mapping(address => address) public buttonMapping;
 
     constructor(address[] memory _rawCollateral, address[] memory _buttonToken) {
@@ -21,25 +20,26 @@ contract LoanRouter {
 
     function createAndBorrow(address _rawCollateral, address _lendingPool, uint256 _amount) public {
         // transfer collateralTokens to this contract
-        TransferHelper.safeTransfer(_rawCollateral, address(this), _amount); 
-        // approve collateral to be buttoned 
+        TransferHelper.safeTransfer(_rawCollateral, address(this), _amount);
+        // approve collateral to be buttoned
         TransferHelper.safeApprove(_rawCollateral, buttonMapping[_rawCollateral], _amount);
-  
-        // call create on loanFactory
 
-        // button up the collateralTokens into the new loan 
+        // call create on loanFactory
+        // loanFactory.create(msg.sender, ); 
+
+        // button up the collateralTokens into the new loan
         // TODO: Replace msg.sender with new loanContract address
         IButtonToken(buttonMapping[_rawCollateral]).mintFor(msg.sender, _amount);
 
         // call borrow on LendingPool
     }
 
-    function convertAndCollect() public {
+    function convertAndCollect( address _loanContract, address _lendingPool) public {
         // call convert on LoanContract
         // call collect on lendingPool
     }
 
-    function repayAndCollect() public {
+    function repayAndCollect(address _loanContract, address _lendingPool) public {
         // transfer stablecoins to this contract
         // approve stablecoins to be spent by loanContract
         // call repay on loanContract
