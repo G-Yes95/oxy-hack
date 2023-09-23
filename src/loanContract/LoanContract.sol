@@ -51,7 +51,7 @@ contract LoanContract is ILoanContract {
     ) external {
         require(!initialized, "Already initialized");
         require(_numOfPayments > 0, "invalid num of payments");
-        
+
         lendingPool = _lendingPool;
         creationDate = block.timestamp;
         numOfPayments = _numOfPayments;
@@ -67,6 +67,7 @@ contract LoanContract is ILoanContract {
 
         initialized = true;
     }
+    
     /// @inheritdoc ILoanContract
     function repay(address _holder, uint256 _debtAmount, uint256 _collateralAmount) external {
         debtToken.burn(_holder, tokenId, _debtAmount);
@@ -105,5 +106,19 @@ contract LoanContract is ILoanContract {
     /// @inheritdoc ILoanContract
      function calculateMaxRedeemableAmount() public view returns (uint256) {
       return stableCoin.balanceOf(address(this)) / (initialDebtAmount / initialPrincipalAmount);
+    }
+
+    // !! Setters for easier re-deployments !!
+    // @dev these are unsafe, and are for hackathon use only. Consider adding access control
+    function setPrincipalToken(address _principalToken) external {
+        principalToken = PrincipalToken(_principalToken);
+    }
+
+    function setDebtToken(address _debtToken) external {
+        debtToken = DebtToken(_debtToken);
+    }
+
+    function setLendingPool(address _lendingPool) external {
+        lendingPool = _lendingPool;
     }
 }
