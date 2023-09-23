@@ -5,7 +5,6 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 
 contract DebtToken is ERC1155 {
-
     error ER1155NonApprovedMinter();
     error ER1155NonApprovedBurner();
 
