@@ -2,37 +2,34 @@
 
 pragma solidity ^0.8.19;
 
-import {BaseHook} from "@uniswap/v4-periphery/contracts/BaseHook.sol";
+import {BaseHook} from "../lib/v4-periphery/contracts/BaseHook.sol";
 import {ERC1155} from "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
-import {Hooks} from "@uniswap/v4-core/contracts/libraries/Hooks.sol";
-import {IPoolManager} from "@uniswap/v4-core/contracts/interfaces/IPoolManager.sol";
-import {PoolId, PoolIdLibrary} from "@uniswap/v4-core/contracts/types/PoolId.sol";
-import {PoolKey} from "@uniswap/v4-core/contracts/types/PoolKey.sol";
-import {BalanceDelta} from "@uniswap/v4-core/contracts/types/BalanceDelta.sol";
+import {Hooks} from "../lib/v4-core/contracts/libraries/Hooks.sol";
+import {IPoolManager} from "../lib/v4-core/contracts/interfaces/IPoolManager.sol";
+import {PoolId, PoolIdLibrary} from "../lib/v4-core/contracts/types/PoolId.sol";
+import {PoolKey} from "../lib/v4-core/contracts/types/PoolKey.sol";
+import {BalanceDelta} from "../lib/v4-core/contracts/types/BalanceDelta.sol";
 
-contract LendingHook is BaseHook, ERC1155 {
+contract LendingHook is BaseHook {
     using PoolIdLibrary for PoolId;
 
     // Address of the lending pool
     address public lendingPool;
-
-    mapping(PoolId poolId => int24 tickLower) public tickLowerLasts;
 
     struct LiquidityRange {
         int24 tickLower; // The lower tick of the range
         int24 tickUpper; // The upper tick of the range
     }
 
-    // The key is the pool ID (bytes32), which is derived from the PoolKey using the toPoolId() function.
+    // The key is the pool ID (PoolId), which is derived from the PoolKey using the toPoolId() function.
     // The value is the LiquidityRange struct that represents the range of ticks where liquidity has been provided.
-    mapping(bytes32 => LiquidityRange) public liquidityRanges;
+    mapping(PoolId => LiquidityRange) public liquidityRanges;
 
     // Initialize BaseHook and ERC1155 parent contracts in the constructor
     constructor(
         IPoolManager _poolManager,
-        string memory _uri,
         address _lendingPool
-    ) ERC1155(_uri) BaseHook(_poolManager) {
+    ) BaseHook(_poolManager) {
         lendingPool = _lendingPool;
     }
 
@@ -45,7 +42,7 @@ contract LendingHook is BaseHook, ERC1155 {
                 beforeModifyPosition: false,
                 afterModifyPosition: false,
                 beforeSwap: true,
-                afterSwap: true,
+                afterSwap: false,
                 beforeDonate: false,
                 afterDonate: false
             });
@@ -55,17 +52,34 @@ contract LendingHook is BaseHook, ERC1155 {
     function beforeSwap(
         address,
         PoolKey calldata poolKey,
-        IPoolManager.SwapParams calldata,
+        IPoolManager.SwapParams calldata params,
         bytes calldata
     ) external override returns (bytes4) {
-        LiquidityRange memory range = liquidityRanges[poolKey.toPoolId()];
+        LiquidityRange memory range = liquidityRanges[
+            PoolIdLibrary.toId(poolKey)
+        ];
 
-        uint256 currentPrice = convertSqrtPriceX96ToPrice(poolKey.sqrtPriceX96);
+        // Step 1: Get the full tuple
+        (uint160 sqrtPriceX96FromTuple, , , ) = poolManager.getSlot0(
+            PoolIdLibrary.toId(poolKey)
+        );
 
-        if (currentPrice < range.tickLower || currentPrice > range.tickUpper) {
-            // If it is outside the range, get all the liquidity provided
+        // Step 2: Use the extracted value
+        uint160 sqrtPriceX96 = sqrtPriceX96FromTuple;
+
+        uint256 estimatedPriceAfterSwap = estimatePriceAfterSwap(
+            sqrtPriceX96,
+            params.amountSpecified,
+            params.zeroForOne
+        );
+
+        if (
+            estimatedPriceAfterSwap < range.tickLower ||
+            estimatedPriceAfterSwap > range.tickUpper
+        ) {
+            // If the estimated price after the swap is outside the range, get all the liquidity provided
             uint256 liquidityToRetrieve = _retrieveLiquidity(
-                poolKey.toPoolId()
+                PoolIdLibrary.toId(poolKey)
             );
 
             // Deposit the retrieved liquidity in the lending pool
@@ -81,41 +95,26 @@ contract LendingHook is BaseHook, ERC1155 {
         BalanceDelta,
         bytes calldata
     ) external override returns (bytes4) {
-        LiquidityRange memory range = liquidityRanges[poolKey.toPoolId()];
+        LiquidityRange memory range = liquidityRanges[
+            PoolIdLibrary.toId(poolKey)
+        ];
 
         uint256 currentPrice = convertSqrtPriceX96ToPrice(poolKey.sqrtPriceX96);
 
         if (currentPrice < range.tickLower || currentPrice > range.tickUpper) {
             // If it is outside the range, get all the liquidity provided
             uint256 liquidityToRetrieve = _retrieveLiquidity(
-                poolKey.toPoolId()
+                PoolIdLibrary.toId(poolKey)
             );
 
             // Deposit the retrieved liquidity in the lending pool
-            depositInLendingPool(liquidityToRetrieve);
+            lendingPool.deposit(liquidityToRetrieve);
         }
 
         return BaseHook.afterSwap.selector;
     }
 
     // Helper functions
-    function _setTickLowerLast(PoolId poolId, int24 tickLower) private {
-        tickLowerLasts[poolId] = tickLower;
-    }
-
-    function _getTickLower(
-        int24 actualTick,
-        int24 tickSpacing
-    ) private pure returns (int24) {
-        int24 intervals = actualTick / tickSpacing;
-
-        if (actualTick < 0 && (actualTick % tickSpacing) != 0) {
-            intervals--;
-        }
-
-        return intervals * tickSpacing;
-    }
-
     function _retrieveLiquidity(PoolId poolId) internal returns (uint256) {
         // Retrieve the liquidity for the given pool. This will burn the liquidity tokens and remove the liquidity from the pool.
         uint256 liquidity = poolManager.burn(
@@ -136,5 +135,19 @@ contract LendingHook is BaseHook, ERC1155 {
         // Convert the sqrtPriceX96 to a regular price using Uniswap's formula.
         uint256 price = (uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) >> 96;
         return price;
+    }
+
+    function estimatePriceAfterSwap(
+        uint160 currentSqrtPriceX96,
+        int256 amountSpecified,
+        bool zeroForOne
+    ) internal pure returns (uint256) {
+        // Placeholder logic: This is a very naive estimation and is likely not accurate.
+        uint256 priceImpact = uint256(amountSpecified) / 10000; // Assuming 0.01% price impact per unit amount
+        if (zeroForOne) {
+            return uint256(currentSqrtPriceX96) - priceImpact;
+        } else {
+            return uint256(currentSqrtPriceX96) + priceImpact;
+        }
     }
 }

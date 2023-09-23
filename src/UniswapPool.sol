@@ -2,14 +2,14 @@
 
 pragma solidity ^0.8.19;
 
-import {BaseHook} from "@uniswap/v4-periphery/contracts/BaseHook.sol";
+import {BaseHook} from "../lib/v4-periphery/contracts/BaseHook.sol";
 
-import {Hooks} from "@uniswap/v4-core/contracts/libraries/Hooks.sol";
-import {IPoolManager} from "@uniswap/v4-core/contracts/interfaces/IPoolManager.sol";
-import {PoolKey} from "@uniswap/v4-core/contracts/types/PoolKey.sol";
-import {PoolId, PoolIdLibrary} from "@uniswap/v4-core/contracts/types/PoolId.sol";
-import {BalanceDelta} from "@uniswap/v4-core/contracts/types/BalanceDelta.sol";
-import {Currency, CurrencyLibrary} from "@uniswap/v4-core/contracts/types/Currency.sol";
+import {Hooks} from "../lib/v4-core/contracts/libraries/Hooks.sol";
+import {IPoolManager} from "../lib/v4-core/contracts/interfaces/IPoolManager.sol";
+import {PoolKey} from "../lib/v4-core/contracts/types/PoolKey.sol";
+import {PoolId, PoolIdLibrary} from "../lib/v4-core/contracts/types/PoolId.sol";
+import {BalanceDelta} from "../lib/v4-core/contracts/types/BalanceDelta.sol";
+import {Currency, CurrencyLibrary} from "../lib/v4-core/contracts/types/Currency.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -52,7 +52,11 @@ contract UniswapPool {
             revert SwapExpired();
         }
 
-        BalanceDelta delta = poolManager.swap(poolKey, swapParams, hookData);
+        BalanceDelta delta = poolManager.swap(
+            poolKey,
+            swapParams,
+            new bytes(0)
+        );
 
         _settleCurrencyBalance(poolKey.currency0, delta.amount0());
         _settleCurrencyBalance(poolKey.currency1, delta.amount1());
