@@ -81,7 +81,7 @@ contract LoanContract is ILoanContract {
         require(_amount <= maxRedeemableAmount, "redeem too much");
         principalToken.burn(lendingPool, tokenId, _amount);
 
-        stableCoin.transfer(lendingPool, ((debtToken.totalSupply(tokenId) / principalToken.totalSupply(tokenId)) * _amount));
+        stableCoin.transfer(lendingPool, ((initialDebtAmount / initialPrincipalAmount) * _amount));
     }
 
 
@@ -100,6 +100,6 @@ contract LoanContract is ILoanContract {
 
     /// @inheritdoc ILoanContract
      function calculateMaxRedeemableAmount() public view returns (uint256) {
-      return stableCoin.balanceOf(address(this)) / (debtToken.totalSupply(tokenId) / principalToken.totalSupply(tokenId));
+      return stableCoin.balanceOf(address(this)) / (initialDebtAmount / initialPrincipalAmount);
     }
 }
