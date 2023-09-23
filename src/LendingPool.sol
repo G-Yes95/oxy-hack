@@ -127,6 +127,44 @@ contract LendingPool is ERC20("PoolToken", "PT") {
         _mint(msg.sender, _amount);
         emit PoolTokensMinted(msg.sender, _amount);
     }
+
+    /**
+     * @dev Called by lender to withdraw funds into the pool.
+     */
+
+    function withdraw(uint256 _amount) external {
+        require(_amount > 0, "Amount must be greater than 0");
+        require(
+            _amount <= stableCoin.balanceOf(address(this)),
+            "Amount exceeds pool balance"
+        );
+
+        // Re-calculate the interest rates
+        interestRateStrategy.calculateInterestRates(
+            address(stableCoin),
+            address(this),
+            0,
+            _amount,
+            totalDebt
+        );
+
+        // Calculate maximum amount of stable coins the lender can withdraw - make thismits own view function
+        uint256 maxWithdrawal = (balanceOf(msg.sender) *
+            stableCoin.balanceOf(address(this))) / totalSupply();
+        require(_amount <= maxWithdrawal, "Withdrawal exceeds allowed amount");
+
+        // Calculating how many pool tokens need to be burned
+        uint256 requiredPoolTokens = (_amount * totalSupply()) /
+            stableCoin.balanceOf(address(this));
+
+        // Burns the pool tokens directly at the lender's address
+        _burn(msg.sender, requiredPoolTokens);
+        emit TokenBurned(msg.sender, requiredPoolTokens);
+
+        // transfers stablecoins to caller in proportion to the tokens he sent
+        stableCoin.safeTransfer(msg.sender, _amount);
+        emit Withdrawal(msg.sender, _amount);
+    }
 }
 
 /********************************************************************************************/
