@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
-// interaces
+// interfaces
 // iLendingPool
 // iLoanContract
 // iLoanFactory
@@ -9,7 +9,7 @@ pragma solidity ^0.8.19;
 // imports
 // iButtonToken
 
-contract loanRouter {
+contract LoanRouter {
     function createAndBorrow() public {
         // transfer collateralTokens to this contract
         // button up the collateralTokens
