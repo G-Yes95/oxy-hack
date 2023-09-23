@@ -97,7 +97,7 @@ contract LendingPool is ERC20("PoolToken", "PT") {
     /**
      * @dev This function updates the total debt value by getting the number of principal tokens held by the pool
      */
-    function updateTotalDebt(uint256 _amount) internal {
+    function _updateTotalDebt(uint256 _amount) internal {
         totalDebt += _amount;
     }
 
@@ -211,7 +211,7 @@ contract LendingPool is ERC20("PoolToken", "PT") {
         );
 
         // Update the total debt value
-        updateTotalDebt(_amount);
+        _updateTotalDebt(_amount);
 
         // Re-calculate the interest rates
         interestRateStrategy.calculateInterestRates(
