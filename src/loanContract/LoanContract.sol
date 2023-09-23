@@ -46,6 +46,7 @@ contract LoanContract is ILoanContract {
         uint256 _initialDebtAmount,
         uint256 _initialPrincipalAmount,
         uint256 _initialCollateralAmount,
+        uint256 _paymentFrequency,
         uint256 _numOfPayments
     ) external {
         require(!initialized, "Already initialized");

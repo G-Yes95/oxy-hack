@@ -12,9 +12,10 @@ interface ILoanContract {
      * @param _initialDebtAmount the intial debt token amount
      * @param _initialPrincipalAmount the intial principal token amount
      * @param _initialCollateralAmount the collateral token amount
+     * @param _paymentFrequency either weekly or monthly (in seconds)
      * @param _numOfPayments the number of payments
      */
-    function init(address _lendingPool, address _stableCoin, address _collateralToken, uint256 _initialDebtAmount, uint256 _initialPrincipalAmount, uint256 _initialCollateralAmount, uint256 _numOfPayments)
+    function init(address _lendingPool, address _stableCoin, address _collateralToken, uint256 _initialDebtAmount, uint256 _initialPrincipalAmount, uint256 _initialCollateralAmount, uint256 _paymentFrequency, uint256 _numOfPayments)
         external;
 
     /**
