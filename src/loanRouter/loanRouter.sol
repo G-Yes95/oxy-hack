@@ -25,13 +25,14 @@ contract LoanRouter {
         TransferHelper.safeApprove(_rawCollateral, buttonMapping[_rawCollateral], _amount);
 
         // call create on loanFactory
-        // loanFactory.create(msg.sender, ); 
+        // loanFactory.create(borrowerAddress, lendingPoolAddress, stablecoinAddress ); 
 
         // button up the collateralTokens into the new loan
         // TODO: Replace msg.sender with new loanContract address
         IButtonToken(buttonMapping[_rawCollateral]).mintFor(msg.sender, _amount);
 
         // call borrow on LendingPool
+        // lendingPool.borrow()
     }
 
     function convertAndCollect( address _loanContract, address _lendingPool) public {
