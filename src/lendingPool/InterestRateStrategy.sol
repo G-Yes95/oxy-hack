@@ -10,13 +10,7 @@ contract InterestRateStrategy {
     using WadRayMath for uint256;
     using PercentageMath for uint256;
 
-    /**
-     *
-     */
-    /*                                       DATA VARIABLES                                     */
-    /**
-     *
-     */
+    // DATA VARIABLES
 
     /**
      * @notice Returns the usage ratio at which the pool aims to obtain most competitive borrow rates.
@@ -50,13 +44,7 @@ contract InterestRateStrategy {
         uint256 collateralInsurancePremiumRate;
     }
 
-    /**
-     *
-     */
-    /*                                       CONSTRUCTOR                                        */
-    /**
-     *
-     */
+    // CONSTRUCTOR
 
     /**
      * @dev Constructor.
@@ -71,7 +59,10 @@ contract InterestRateStrategy {
         uint256 stableRateSlope1,
         uint256 stableRateSlope2
     ) {
-        require(WadRayMath.RAY >= optimalUsageRatio, "INVALID_OPTIMAL_USAGE_RATIO");
+        require(
+            WadRayMath.RAY >= optimalUsageRatio,
+            "INVALID_OPTIMAL_USAGE_RATIO"
+        );
         OPTIMAL_USAGE_RATIO = optimalUsageRatio;
         MAX_EXCESS_USAGE_RATIO = WadRayMath.RAY - optimalUsageRatio;
         _baseStableBorrowRate = baseStableBorrowRate;
@@ -79,13 +70,7 @@ contract InterestRateStrategy {
         _stableRateSlope2 = stableRateSlope2;
     }
 
-    /**
-     *
-     */
-    /*                                   CONTRACT FUNCTIONS                                     */
-    /**
-     *
-     */
+    // CONTRACT FUNCTIONS
 
     /**
      * @notice Calculates the interest rates depending on the reserve's state and configurations
@@ -105,17 +90,28 @@ contract InterestRateStrategy {
         vars.currentStableBorrowRate = _baseStableBorrowRate;
 
         if (_totalDebt != 0) {
-            vars.availableLiquidity = IERC20(_asset).balanceOf(_poolToken) + _liquidityAdded - _liquidityTaken;
+            vars.availableLiquidity =
+                IERC20(_asset).balanceOf(_poolToken) +
+                _liquidityAdded -
+                _liquidityTaken;
 
-            vars.availableLiquidityPlusDebt = vars.availableLiquidity + _totalDebt;
+            vars.availableLiquidityPlusDebt =
+                vars.availableLiquidity +
+                _totalDebt;
 
-            vars.usageRatio = _totalDebt.rayDiv(vars.availableLiquidityPlusDebt);
+            vars.usageRatio = _totalDebt.rayDiv(
+                vars.availableLiquidityPlusDebt
+            );
         }
 
-        vars.currentStableBorrowRate = _baseStableBorrowRate + _stableRateSlope1.rayMul(vars.usageRatio);
+        vars.currentStableBorrowRate =
+            _baseStableBorrowRate +
+            _stableRateSlope1.rayMul(vars.usageRatio);
 
-        vars.currentLiquidityRate =
-            vars.currentStableBorrowRate.rayMul(vars.usageRatio).percentMul(PercentageMath.PERCENTAGE_FACTOR);
+        vars.currentLiquidityRate = vars
+            .currentStableBorrowRate
+            .rayMul(vars.usageRatio)
+            .percentMul(PercentageMath.PERCENTAGE_FACTOR);
 
         return (vars.currentLiquidityRate, vars.currentStableBorrowRate);
     }
@@ -127,13 +123,20 @@ contract InterestRateStrategy {
      * @return liquidityRate The liquidity rate expressed in rays - The liquidity rate is the rate paid to lenders on the protocol
      * @return finalStableBorrowRate The stable borrow rate expressed in rays after adding the premiums
      */
-    function riskAdjustedRate(bool paysCoupon, bool isCollateralInsured) external pure returns (uint256, uint256) {
+    function riskAdjustedRate(
+        bool paysCoupon,
+        bool isCollateralInsured
+    ) external pure returns (uint256, uint256) {
         CalcInterestRatesLocalVars memory vars;
 
         uint256 couponPremium = paysCoupon ? 0 : vars.couponPremiumRate;
-        uint256 collateralPremium = isCollateralInsured ? 0 : vars.collateralInsurancePremiumRate;
+        uint256 collateralPremium = isCollateralInsured
+            ? 0
+            : vars.collateralInsurancePremiumRate;
 
-        uint256 finalStableBorrowRate = vars.currentStableBorrowRate + couponPremium + collateralPremium;
+        uint256 finalStableBorrowRate = vars.currentStableBorrowRate +
+            couponPremium +
+            collateralPremium;
 
         return (vars.currentLiquidityRate, finalStableBorrowRate);
     }
