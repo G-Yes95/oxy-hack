@@ -16,7 +16,7 @@ contract DebtToken is ERC1155 {
     }
 
     function mint(address account, uint256 id, uint256 value) public {
-        if (_msgSender() == loanFactory) {
+        if (_msgSender() != loanFactory) {
             revert ER1155NonApprovedMinter();
         }
 
