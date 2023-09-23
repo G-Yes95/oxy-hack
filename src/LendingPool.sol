@@ -70,4 +70,38 @@ contract LendingPool is
         interestRateStrategy = IInterestRateStrategy(_interestRateStrategy);
         totalDebt = 0;
     }
+
+    /********************************************************************************************/
+    /*                                       UTILITY FUNCTIONS                                  */
+    /********************************************************************************************/
+
+    /**
+     * @dev This function allows the owner to set the address of the loanRouter.
+     */
+    function setLoanRouter(address _loanRouter) external onlyOwner {
+        loanRouter = _loanRouter;
+    }
+
+    /**
+     * @dev This function allows the owner to set the address of the principalToken.
+     */
+    function setPrincipalToken(address _principalToken) external onlyOwner {
+        principalToken = IERC1155(_principalToken);
+    }
+
+    /**
+     * @dev This function allows the owner to set the address of the interest rate strategy contract.
+     */
+    function setInterestRateStrategy(
+        address _interestRateStrategy
+    ) external onlyOwner {
+        interestRateStrategy = IInterestRateStrategy(_interestRateStrategy);
+    }
+
+    /**
+     * @dev This function updates the total debt value by getting the number of principal tokens held by the pool
+     */
+    function updateTotalDebt(uint256 _amount) internal {
+        totalDebt += _amount;
+    }
 }
