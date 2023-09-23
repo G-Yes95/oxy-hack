@@ -45,4 +45,32 @@ contract InterestRateStrategy {
         uint256 couponPremiumRate;
         uint256 collateralInsurancePremiumRate;
     }
+
+    /********************************************************************************************/
+    /*                                       CONSTRUCTOR                                        */
+    /********************************************************************************************/
+
+    /**
+     * @dev Constructor.
+     * @param optimalUsageRatio The optimal usage ratio
+     * @param baseStableBorrowRate The base variable borrow rate
+     * @param stableRateSlope1 The variable rate slope below optimal usage ratio
+     * @param stableRateSlope2 The variable rate slope above optimal usage ratio
+     */
+    constructor(
+        uint256 optimalUsageRatio,
+        uint256 baseStableBorrowRate,
+        uint256 stableRateSlope1,
+        uint256 stableRateSlope2
+    ) {
+        require(
+            WadRayMath.RAY >= optimalUsageRatio,
+            "INVALID_OPTIMAL_USAGE_RATIO"
+        );
+        OPTIMAL_USAGE_RATIO = optimalUsageRatio;
+        MAX_EXCESS_USAGE_RATIO = WadRayMath.RAY - optimalUsageRatio;
+        _baseStableBorrowRate = baseStableBorrowRate;
+        _stableRateSlope1 = stableRateSlope1;
+        _stableRateSlope2 = stableRateSlope2;
+    }
 }
