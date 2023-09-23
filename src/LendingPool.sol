@@ -197,6 +197,35 @@ contract LendingPool is ERC20("PoolToken", "PT") {
         // Call the collectPayment function in the loan contract - does principal token need approval to be burned?
         loanContract.redeem(Math.min(principalTokenBalance, _amount));
     }
+
+    /**
+     * @dev Called by the loanRouter. This function accepts the principal token and sends the borrowed funds to the loanRouter.
+     */
+    function borrow(
+        address _borrower,
+        uint256 _amount
+    ) external onlyLoanRouter {
+        require(
+            _amount <= stableCoin.balanceOf(address(this)),
+            "Not enough funds in the pool"
+        );
+
+        // Update the total debt value
+        updateTotalDebt(_amount);
+
+        // Re-calculate the interest rates
+        interestRateStrategy.calculateInterestRates(
+            address(stableCoin),
+            address(this),
+            0,
+            _amount,
+            totalDebt
+        );
+
+        // Transfer the requested stableCoin to the loanRouter.
+        stableCoin.safeTransfer(_borrower, _amount);
+        emit Borrowed(_borrower, _amount);
+    }
 }
 
 /********************************************************************************************/
