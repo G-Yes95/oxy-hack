@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-// imports
-
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
@@ -36,4 +34,14 @@ contract LendingPool is
 
     // Variable to keep track of the total debt owed to the pool
     uint256 public totalDebt;
+
+    /********************************************************************************************/
+    /*                                       EVENT DEFINITIONS                                  */
+    /********************************************************************************************/
+
+    event Deposited(address indexed user, uint256 amount);
+    event Borrowed(address indexed borrower, uint256 amount);
+    event PoolTokensMinted(address indexed lender, uint256 poolTokens);
+    event Withdrawal(address indexed lender, uint256 amount);
+    event TokenBurned(address indexed lender, uint256 tokenAmount);
 }
