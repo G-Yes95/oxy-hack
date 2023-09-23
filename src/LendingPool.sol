@@ -104,4 +104,50 @@ contract LendingPool is
     function updateTotalDebt(uint256 _amount) internal {
         totalDebt += _amount;
     }
+
+    /********************************************************************************************/
+    /*                                     SMART CONTRACT FUNCTIONS                             */
+    /********************************************************************************************/
+
+    /**
+     * @dev Called by lender to deposit funds into the pool.
+     */
+
+    function deposit(uint256 _amount) external nonReentrant {
+        require(_amount > 0, "Amount must be greater than 0");
+
+        // Re-calculate the interest rates
+        interestRateStrategy.calculateInterestRates(
+            address(stableCoin),
+            address(this),
+            _amount,
+            0,
+            totalDebt
+        );
+
+        // transfer stablecoins
+        stableCoin.safeTransferFrom(msg.sender, address(this), _amount);
+        emit Deposited(msg.sender, _amount);
+
+        _mint(msg.sender, _amount);
+        emit PoolTokensMinted(msg.sender, _amount);
+    }
+}
+
+/********************************************************************************************/
+/*                                      INTERFACES                                          */
+/********************************************************************************************/
+
+interface ILoanContract {
+    function collectPayment(uint256 debtTokenBalance) external;
+}
+
+interface IInterestRateStrategy {
+    function calculateInterestRates(
+        address _asset,
+        address _poolToken,
+        uint256 _liquidityAdded,
+        uint256 _liquidityTaken,
+        uint256 _totalDebt
+    ) external view returns (uint256, uint256);
 }
