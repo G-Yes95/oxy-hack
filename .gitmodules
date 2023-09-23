@@ -7,3 +7,6 @@
 [submodule "lib/button-wrappers"]
 	path = lib/button-wrappers
 	url = https://github.com/buttonwood-protocol/button-wrappers
+[submodule "lib/solidity-lib"]
+	path = lib/solidity-lib
+	url = https://github.com/Uniswap/solidity-lib
