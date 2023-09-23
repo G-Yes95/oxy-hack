@@ -48,7 +48,7 @@ contract LoanFactory {
         debtToken.mint(_borrower, uint256(uint160(clone)), dQty);
 
         // call init on loanContract (passing in qty's)
-        // LoanContract.init(_stableCoin, _collateralToken, _principalToken, _debtToken);
+        // LoanContract(clone).init(_stableCoin, _collateralToken, _principalToken, _debtToken);
 
 
 

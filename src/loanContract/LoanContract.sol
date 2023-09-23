@@ -9,8 +9,12 @@ import "../accountingTokens/PrincipalToken.sol";
 
 // The goal of LoanContract is to be a vault for collateral tokens
 contract LoanContract is ILoanContract {
-    // Address of the loanRouter
-    address loanRouter;
+    // The tokenID that will be used in DebtToken and PrincipalToken
+    // @dev this will be set as uint256(uint160(address(this)) in the init()
+    uint256 tokenId;
+
+    // Address of the lendingPool
+    address lendingPool;
 
     // The stablecoin (e.g., USDC) to be borrowed from the pool.
     IERC20 public stableCoin;
@@ -36,6 +40,7 @@ contract LoanContract is ILoanContract {
 
     function init(
         // address _loanRouter,
+        address _lendingPool,
         address _stableCoin, 
         address _collateralToken, // TODO change to buttonToken
         uint256 _initialDebtAmount,
@@ -46,6 +51,7 @@ contract LoanContract is ILoanContract {
         require(!initialized, "Already initialized");
         require(_numOfPayments > 0, "invalid num of payments");
         // loanRouter = _loanRouter;
+        lendingPool = _lendingPool;
         creationDate = block.timestamp;
         numOfPayments = _numOfPayments;
         stableCoin = IERC20(_stableCoin);
@@ -54,12 +60,13 @@ contract LoanContract is ILoanContract {
         initialPrincipalAmount = _initialPrincipalAmount;
         periodicPaymentAmount = (_initialDebtAmount - _initialPrincipalAmount) / _numOfPayments;
         initialCollateralAmount = _initialCollateralAmount;
+        tokenId = uint256(uint160(address(this)));
 
         initialized = true;
     }
     /// @inheritdoc ILoanContract
     function repay(address _holder, uint256 _debtAmount, uint256 _collateralAmount) external {
-        debtToken.burn(_holder, uint256(uint160(address(this))), _debtAmount);
+        debtToken.burn(_holder, tokenId, _debtAmount);
         collateralToken.transferFrom(msg.sender, address(this), _collateralAmount);
     }
 
@@ -70,9 +77,19 @@ contract LoanContract is ILoanContract {
     }
 
     /// @inheritdoc ILoanContract
+    function redeem(uint256 _amount) external {
+        uint maxRedeemableAmount = calculateMaxRedeemableAmount();
+        require(_amount <= maxRedeemableAmount, "redeem too much");
+        principalToken.burn(lendingPool, tokenId, _amount);
+
+        stableCoin.transfer(lendingPool, ((debtToken.totalSupply(tokenId) / principalToken.totalSupply(tokenId)) * _amount));
+    }
+
+
+    /// @inheritdoc ILoanContract
      function calculateMaxConvertibleAmount() public view returns (uint256) {    
       uint256 currentWeekNumber = (block.timestamp - creationDate) / 604800; // 1 week
-      uint256 currentDebtAmount = debtToken.totalSupply(uint256(uint160(address(this))));
+      uint256 currentDebtAmount = debtToken.totalSupply(tokenId);
       uint256 totalInterest = initialDebtAmount - currentDebtAmount;
       uint256 exectedInterest = currentWeekNumber * periodicPaymentAmount;
 
@@ -80,10 +97,7 @@ contract LoanContract is ILoanContract {
     } 
 
     /// @inheritdoc ILoanContract
-     function calculateMaxRedeemableAmount() public view {
-
-      // get balance of stablecoins
-      // divide balance by (totalSupplyDebtTokens)/(totalSupplyPrincipalTokens)
-  
+     function calculateMaxRedeemableAmount() public view returns (uint256) {
+      return stableCoin.balanceOf(address(this)) / (debtToken.totalSupply(tokenId) / principalToken.totalSupply(tokenId));
     }
 }
