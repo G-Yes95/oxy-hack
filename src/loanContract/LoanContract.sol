@@ -39,7 +39,6 @@ contract LoanContract is ILoanContract {
     bool initialized;
 
     function init(
-        // address _loanRouter,
         address _lendingPool,
         address _stableCoin, 
         address _collateralToken, // TODO change to buttonToken
@@ -51,7 +50,6 @@ contract LoanContract is ILoanContract {
     ) external {
         require(!initialized, "Already initialized");
         require(_numOfPayments > 0, "invalid num of payments");
-        // loanRouter = _loanRouter;
         lendingPool = _lendingPool;
         creationDate = block.timestamp;
         numOfPayments = _numOfPayments;
@@ -62,7 +60,7 @@ contract LoanContract is ILoanContract {
         periodicPaymentAmount = (_initialDebtAmount - _initialPrincipalAmount) / _numOfPayments;
         initialCollateralAmount = _initialCollateralAmount;
         tokenId = uint256(uint160(address(this)));
-
+        maturityDate = (numOfPayments * _paymentFrequency) + block.timestamp;
         initialized = true;
     }
     /// @inheritdoc ILoanContract
@@ -88,13 +86,16 @@ contract LoanContract is ILoanContract {
 
 
     /// @inheritdoc ILoanContract
-     function calculateMaxConvertibleAmount() public view returns (uint256) {    
-      uint256 currentWeekNumber = (block.timestamp - creationDate) / 604800; // 1 week
-      uint256 currentDebtAmount = debtToken.totalSupply(tokenId);
-      uint256 totalInterest = initialDebtAmount - currentDebtAmount;
-      uint256 exectedInterest = currentWeekNumber * periodicPaymentAmount;
+     function calculateMaxConvertibleAmount() public view returns (uint256) {
+      if (maturityDate > block.timestamp) {
+        uint256 currentWeekNumber = (block.timestamp - creationDate) / 604800; // 1 week
+        uint256 currentDebtAmount = debtToken.totalSupply(tokenId);
+        uint256 totalInterest = initialDebtAmount - currentDebtAmount;
+        uint256 exectedInterest = currentWeekNumber * periodicPaymentAmount;
 
-      return exectedInterest > totalInterest ? exectedInterest - totalInterest : 0;
+        return exectedInterest > totalInterest ? exectedInterest - totalInterest : 0;
+      }
+      return debtToken.totalSupply(tokenId);
     } 
 
     /// @inheritdoc ILoanContract
