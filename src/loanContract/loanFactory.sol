@@ -47,7 +47,7 @@ contract LoanFactory {
     }
 
     //modifier for only loanRouter
-    function create(address _borrower, address _lendingPool, uint256 _amount, uint256 _collateralQty)
+    function create(address _borrower, address _lendingPool, uint256 _amount, uint256 _collateralQty, uint256 _paymentFrequency, uint256 _numPayments)
         public
         returns (address)
     {
