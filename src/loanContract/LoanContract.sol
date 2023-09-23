@@ -25,18 +25,19 @@ contract LoanContract is ILoanContract {
 
     /// @inheritdoc ILoanContract
     function init(
-        IERC20 _stableCoin,
-        IERC20 _collateralToken, // TODO change to buttonToken
+        address _stableCoin, 
+        address _collateralToken, // TODO change to buttonToken
         IERC1155 _principalToken,
         IERC1155 _debtToken
     ) external {
         require(!initialized, "Already initialized");
-        stableCoin = _stableCoin;
-        collateralToken = _collateralToken;
+        stableCoin = IERC20(_stableCoin);
+        collateralToken = IERC20(_collateralToken);
         principalToken = _principalToken;
         debtToken = _debtToken;
 
         initialCollateralAmount = collateralToken.balanceOf(address(this));
+        debtToken.mint();
         initialized = true;
     }
 
