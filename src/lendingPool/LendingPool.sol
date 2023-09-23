@@ -225,7 +225,9 @@ contract LendingPool is ERC20("PoolToken", "PT") {
     }
 }
 
-// INTERFACES
+/********************************************************************************************/
+/*                                         INTERFACES                                       */
+/********************************************************************************************/
 
 interface ILoanContract {
     function redeem(uint256 debtTokenBalance) external;
