@@ -183,7 +183,13 @@ contract LendingPool is ERC20("PoolToken", "PT") {
         totalDebt -= _amount;
 
         // Re-calculate the interest rates
-        // TODO
+        interestRateStrategy.calculateInterestRates(
+            address(stableCoin),
+            address(this),
+            _amount,
+            0,
+            totalDebt
+        );
 
         // Call the collectPayment function in the loan contract - does principal token need approval to be burned?
         loanContract.redeem(Math.min(principalTokenBalance, _amount));
