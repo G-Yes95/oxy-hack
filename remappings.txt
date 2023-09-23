@@ -1,2 +1,4 @@
 @openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
 @buttonwood-protocol/button-wrappers/=lib/button-wrappers/
+@uniswap/lib/=lib/solidity-lib/
+forge-std/=lib/forge-std/src/
