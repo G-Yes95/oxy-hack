@@ -36,6 +36,7 @@ contract LoanContract is ILoanContract {
     uint256 public initialPrincipalAmount;
     uint256 public periodicPaymentAmount;
     uint256 public initialCollateralAmount;
+    uint256 public paymentFrequency;
     bool initialized;
 
     function init(
@@ -50,6 +51,7 @@ contract LoanContract is ILoanContract {
     ) external {
         require(!initialized, "Already initialized");
         require(_numOfPayments > 0, "invalid num of payments");
+        
         lendingPool = _lendingPool;
         creationDate = block.timestamp;
         numOfPayments = _numOfPayments;
@@ -61,6 +63,8 @@ contract LoanContract is ILoanContract {
         initialCollateralAmount = _initialCollateralAmount;
         tokenId = uint256(uint160(address(this)));
         maturityDate = (numOfPayments * _paymentFrequency) + block.timestamp;
+        paymentFrequency = _paymentFrequency;
+
         initialized = true;
     }
     /// @inheritdoc ILoanContract
@@ -88,10 +92,10 @@ contract LoanContract is ILoanContract {
     /// @inheritdoc ILoanContract
      function calculateMaxConvertibleAmount() public view returns (uint256) {
       if (maturityDate > block.timestamp) {
-        uint256 currentWeekNumber = (block.timestamp - creationDate) / 604800; // 1 week
+        uint256 currentPeriodNumber = (block.timestamp - creationDate) / paymentFrequency; // 1 week
         uint256 currentDebtAmount = debtToken.totalSupply(tokenId);
         uint256 totalInterest = initialDebtAmount - currentDebtAmount;
-        uint256 exectedInterest = currentWeekNumber * periodicPaymentAmount;
+        uint256 exectedInterest = currentPeriodNumber * periodicPaymentAmount;
 
         return exectedInterest > totalInterest ? exectedInterest - totalInterest : 0;
       }
