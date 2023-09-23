@@ -53,4 +53,21 @@ contract LendingPool is
         require(msg.sender == loanRouter, "Caller is not authorized");
         _;
     }
+
+    /********************************************************************************************/
+    /*                                       CONSTRUCTOR                                        */
+    /********************************************************************************************/
+
+    constructor(
+        address _stableCoin,
+        address _principalToken,
+        address _loanRouter,
+        address _interestRateStrategy
+    ) {
+        stableCoin = IERC20(_stableCoin);
+        loanRouter = _loanRouter;
+        principalToken = IERC1155(_principalToken);
+        interestRateStrategy = IInterestRateStrategy(_interestRateStrategy);
+        totalDebt = 0;
+    }
 }
