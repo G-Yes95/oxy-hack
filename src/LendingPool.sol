@@ -5,9 +5,10 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-// import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
+// import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 // import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract LendingPool is ERC20("PoolToken", "PT") {
@@ -165,6 +166,37 @@ contract LendingPool is ERC20("PoolToken", "PT") {
         stableCoin.safeTransfer(msg.sender, _amount);
         emit Withdrawal(msg.sender, _amount);
     }
+
+    /**
+     * @dev This function collects the repayments that the borrower has made to the loan contract.
+     * The function is called by the loan router when the borrower repays loans or interest.
+     * This function calls the collectPayment function in the loan contract.
+     * @param _loanContract The address of the loan contract.
+     * @param _tokenId The ID of the principal token.
+     */
+    function collectPayment(
+        address _loanContract,
+        uint256 _tokenId,
+        uint256 _amount
+    ) external onlyLoanRouter {
+        // Get the balance of principal tokens held by this contract
+        uint256 principalTokenBalance = principalToken.balanceOf(
+            address(this),
+            _tokenId
+        );
+
+        // Dynamically cast the address of the ILoanContract interface
+        ILoanContract loanContract = ILoanContract(_loanContract);
+
+        // Update the total debt value
+        // TODO
+
+        // Re-calculate the interest rates
+        // TODO
+
+        // Call the collectPayment function in the loan contract - does principal token need approval to be burned?
+        loanContract.redeem(Math.min(principalTokenBalance, _amount));
+    }
 }
 
 /********************************************************************************************/
@@ -172,7 +204,7 @@ contract LendingPool is ERC20("PoolToken", "PT") {
 /********************************************************************************************/
 
 interface ILoanContract {
-    function collectPayment(uint256 debtTokenBalance) external;
+    function redeem(uint256 debtTokenBalance) external;
 }
 
 interface IInterestRateStrategy {
