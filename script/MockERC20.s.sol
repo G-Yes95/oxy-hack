@@ -8,7 +8,6 @@ contract MockERC20Deployer is Script {
     function setUp() public {}
 
     function run() public {
-
         vm.startBroadcast();
         MockERC20 hETH = new MockERC20("hETH", "hackETH", 18);
         vm.stopBroadcast();
