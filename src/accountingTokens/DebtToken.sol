@@ -10,6 +10,8 @@ contract DebtToken is ERC1155 {
 
     address immutable loanFactory;
 
+    // Used to track the totalSupply for each ID
+    mapping(uint256 => uint256) public totalSupply;
     constructor(address _loanFactory) ERC1155("DEBT TOKEN") {
         loanFactory = _loanFactory;
     }
@@ -21,6 +23,7 @@ contract DebtToken is ERC1155 {
 
         bytes memory emptyBytes = new bytes(0);
         _mint(account, id, value, emptyBytes);
+        totalSupply[id] += value;
     }
 
     function burn(address account, uint256 id, uint256 value) public {
@@ -29,5 +32,6 @@ contract DebtToken is ERC1155 {
         }
 
         _burn(account, id, value);
+        totalSupply[id] -= value;
     }
 }
