@@ -2,9 +2,18 @@
 pragma solidity ^0.8.20;
 
 // interfaces
+
 // iLendingPool
+interface ILendingPool {
+  function stableCoin() external view returns (IERC20); 
+  function totalDebt() external view returns (uint256);
+  function borrow(address _borrower, uint256 _amount) external ; 
+}
 // iLoanContract
 // iLoanFactory
+interface ILoanFactory {
+  function create(address _borrower, address _lendingPool, uint256 _amount, uint256 _collateralQty) external returns (address); 
+}
 
 // imports
 import "@buttonwood-protocol/button-wrappers/contracts/interfaces/IButtonToken.sol";
@@ -18,21 +27,24 @@ contract LoanRouter {
         buttonMapping[_rawCollateral[1]] = _buttonToken[1];
     }
 
-    function createAndBorrow(address _rawCollateral, address _lendingPool, uint256 _amount) public {
+    function createAndBorrow(address _loanFactory, address _rawCollateral, address _lendingPool, uint256 _amount) public {
         // transfer collateralTokens to this contract
         TransferHelper.safeTransfer(_rawCollateral, address(this), _amount);
         // approve collateral to be buttoned
         TransferHelper.safeApprove(_rawCollateral, buttonMapping[_rawCollateral], _amount);
 
-        // call create on loanFactory
-        // loanFactory.create(borrowerAddress, lendingPoolAddress, stablecoinAddress );
+        // calculate relevant qty's 
+        address _asset = address(ILendingPool(_lendingPool).stableCoin());
+        uint256 _liquidityTaken = _amount * IERC20Metadata(_asset).decimals() / IERC20Metadata(_rawCollateral).decimals()/2; 
+        uint256 collateralQty = IButtonToken(buttonMapping[_rawCollateral]).underlyingToWrapper(_amount);
+        // clone and init loanContract
+        address clone = ILoanFactory(_loanFactory).create(msg.sender, _lendingPool, _liquidityTaken, collateralQty);
 
         // button up the collateralTokens into the new loan
-        // TODO: Replace msg.sender with new loanContract address
-        IButtonToken(buttonMapping[_rawCollateral]).mintFor(msg.sender, _amount);
+        IButtonToken(buttonMapping[_rawCollateral]).mintFor(clone, _amount);
 
-        // call borrow on LendingPool
-        // lendingPool.borrow()
+         // call borrow on LendingPool
+        ILendingPool(_lendingPool).borrow(msg.sender, _liquidityTaken);
     }
 
     function convertAndCollect(address _loanContract, address _lendingPool) public {
