@@ -5,15 +5,12 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+// import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-contract LendingPool is
-    ERC20("PoolToken", "PT"),
-    ReentrancyGuard,
-    OwnableUpgradeable
-{
+// import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+
+contract LendingPool is ERC20("PoolToken", "PT") {
     using SafeERC20 for IERC20;
 
     /********************************************************************************************/
@@ -78,23 +75,21 @@ contract LendingPool is
     /**
      * @dev This function allows the owner to set the address of the loanRouter.
      */
-    function setLoanRouter(address _loanRouter) external onlyOwner {
+    function setLoanRouter(address _loanRouter) external {
         loanRouter = _loanRouter;
     }
 
     /**
      * @dev This function allows the owner to set the address of the principalToken.
      */
-    function setPrincipalToken(address _principalToken) external onlyOwner {
+    function setPrincipalToken(address _principalToken) external {
         principalToken = IERC1155(_principalToken);
     }
 
     /**
      * @dev This function allows the owner to set the address of the interest rate strategy contract.
      */
-    function setInterestRateStrategy(
-        address _interestRateStrategy
-    ) external onlyOwner {
+    function setInterestRateStrategy(address _interestRateStrategy) external {
         interestRateStrategy = IInterestRateStrategy(_interestRateStrategy);
     }
 
@@ -113,7 +108,7 @@ contract LendingPool is
      * @dev Called by lender to deposit funds into the pool.
      */
 
-    function deposit(uint256 _amount) external nonReentrant {
+    function deposit(uint256 _amount) external {
         require(_amount > 0, "Amount must be greater than 0");
 
         // Re-calculate the interest rates
