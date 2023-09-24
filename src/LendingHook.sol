@@ -18,6 +18,9 @@ contract LendingHook is BaseHook {
     // Address of the lending pool
     LendingPool public lendingPool;
 
+    // Keeps track of where the liquidity currently is
+    bool public liquidityInUniswap;
+
     struct LiquidityRange {
         int24 tickLower; // The lower tick of the range
         int24 tickUpper; // The upper tick of the range
@@ -33,6 +36,7 @@ contract LendingHook is BaseHook {
         address _lendingPool
     ) BaseHook(_poolManager) {
         lendingPool = LendingPool(_lendingPool);
+        liquidityInUniswap = true;
     }
 
     // Required override function for BaseHook to let the PoolManager know which hooks are implemented
@@ -62,8 +66,9 @@ contract LendingHook is BaseHook {
         ];
 
         // Step 1: Get the full tuple
-        (uint160 sqrtPriceX96FromTuple, int24 currentTick, , ) = poolManager
-            .getSlot0(PoolIdLibrary.toId(poolKey));
+        (uint160 sqrtPriceX96FromTuple, , , ) = poolManager.getSlot0(
+            PoolIdLibrary.toId(poolKey)
+        );
 
         // Step 2: Use the extracted values
         uint160 sqrtPriceX96 = sqrtPriceX96FromTuple;
@@ -82,17 +87,35 @@ contract LendingHook is BaseHook {
             range.tickUpper
         );
 
-        if (
-            adjustedSqrtPriceX96 < lowerSqrtPriceX96 ||
-            adjustedSqrtPriceX96 > upperSqrtPriceX96
-        ) {
-            // If the estimated price after the swap is outside the range, get all the liquidity provided
-            uint256 liquidityToRetrieve = _retrieveLiquidity(
-                PoolIdLibrary.toId(poolKey)
-            );
-
-            // Deposit the retrieved liquidity in the lending pool
-            lendingPool.deposit(liquidityToRetrieve);
+        if (liquidityInUniswap) {
+            if (
+                adjustedSqrtPriceX96 < lowerSqrtPriceX96 ||
+                adjustedSqrtPriceX96 > upperSqrtPriceX96
+            ) {
+                // If the liquidity is in Uniswap and the estimated price after the swap is outside the range
+                uint256 liquidityToRetrieve = _retrieveLiquidity(
+                    PoolIdLibrary.toId(poolKey)
+                );
+                lendingPool.deposit(liquidityToRetrieve);
+                liquidityInUniswap = false;
+            }
+            // If the liquidity is in Uniswap and the estimated price after the swap is within the range, do nothing.
+        } else {
+            if (
+                adjustedSqrtPriceX96 >= lowerSqrtPriceX96 &&
+                adjustedSqrtPriceX96 <= upperSqrtPriceX96
+            ) {
+                // If the liquidity is in the lending pool and the estimated price after the swap is within the range
+                uint256 liquidityToProvide = lendingPool.withdraw(
+                    params.amountSpecified
+                ); // Assuming the lendingPool has a withdraw function that returns the liquidity
+                _provideLiquidityToUniswap(
+                    PoolIdLibrary.toId(poolKey),
+                    liquidityToProvide
+                );
+                liquidityInUniswap = true;
+            }
+            // If the liquidity is in the lending pool and the estimated price after the swap is outside the range, do nothing.
         }
         return BaseHook.beforeSwap.selector;
     }
@@ -131,6 +154,10 @@ contract LendingHook is BaseHook {
             address(this),
             address(this)
         );
+
+        // Transfer the underlying assets (tokens) from Uniswap to the LendingHook contract
+        // This step depends on the implementation of the Uniswap pool and how it handles liquidity removal.
+        // You might need to call additional functions or handle token transfers here.
 
         // Update the liquidityRanges mapping to reflect the removed liquidity
         delete liquidityRanges[poolId];

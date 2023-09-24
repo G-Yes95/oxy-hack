@@ -114,7 +114,7 @@ contract LendingPool is ERC20("PoolToken", "PT") {
      * @dev Called by lender to withdraw funds into the pool.
      */
 
-    function withdraw(uint256 _amount) external {
+    function withdraw(uint256 _amount) external returns (uint256) {
         require(_amount > 0, "Amount must be greater than 0");
         require(
             _amount <= stableCoin.balanceOf(address(this)),
@@ -146,6 +146,9 @@ contract LendingPool is ERC20("PoolToken", "PT") {
         // transfers stablecoins to caller in proportion to the tokens he sent
         stableCoin.safeTransfer(msg.sender, _amount);
         emit Withdrawal(msg.sender, _amount);
+
+        // return the amount of stablecoins withdrawn so that LendingHook can use it.
+        return _amount;
     }
 
     /**

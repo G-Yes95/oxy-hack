@@ -22,6 +22,12 @@ using SafeERC20 for IERC20;
 contract UniswapPool {
     IPoolManager public poolManager;
 
+    // Mapping to track liquidity token balances for each provider
+    mapping(address => uint256) public liquidityBalances;
+
+    event LiquidityDeposited(address indexed provider, uint256 amount);
+    event LiquidityWithdrawn(address indexed provider, uint256 amount);
+
     constructor(IPoolManager _poolManager) {
         poolManager = _poolManager;
     }
@@ -32,6 +38,53 @@ contract UniswapPool {
         uint256 deadline
     ) public payable {
         poolManager.lock(abi.encode(poolKey, swapParams, deadline));
+    }
+
+    // Function to deposit liquidity
+    function depositLiquidity(
+        uint256 amountTokenA,
+        uint256 amountTokenB
+    ) external {
+        // Transfer the tokens from the provider to the contract
+        IERC20(tokenA).safeTransferFrom(
+            msg.sender,
+            address(this),
+            amountTokenA
+        );
+        IERC20(tokenB).safeTransferFrom(
+            msg.sender,
+            address(this),
+            amountTokenB
+        );
+
+        // Calculate liquidity tokens to mint (this is a simplified example, actual calculation might be different)
+        uint256 liquidityTokens = amountTokenA + amountTokenB; // Simplified for demonstration
+
+        // Update the liquidity balance for the provider
+        liquidityBalances[msg.sender] += liquidityTokens;
+
+        emit LiquidityDeposited(msg.sender, liquidityTokens);
+    }
+
+    // Function to withdraw liquidity
+    function withdrawLiquidity(uint256 liquidityTokens) external {
+        require(
+            liquidityBalances[msg.sender] >= liquidityTokens,
+            "Not enough liquidity tokens"
+        );
+
+        // Burn the liquidity tokens from the provider's balance
+        liquidityBalances[msg.sender] -= liquidityTokens;
+
+        // Calculate the amount of each token to return (this is a simplified example, actual calculation might be different)
+        uint256 amountTokenA = liquidityTokens / 2; // Simplified for demonstration
+        uint256 amountTokenB = liquidityTokens / 2; // Simplified for demonstration
+
+        // Transfer the tokens back to the provider
+        IERC20(tokenA).safeTransfer(msg.sender, amountTokenA);
+        IERC20(tokenB).safeTransfer(msg.sender, amountTokenB);
+
+        emit LiquidityWithdrawn(msg.sender, liquidityTokens);
     }
 
     function lockAcquired(
