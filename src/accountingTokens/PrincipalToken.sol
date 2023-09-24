@@ -8,10 +8,10 @@ contract PrincipalToken is ERC1155 {
     error ER1155NonApprovedMinter();
     error ER1155NonApprovedBurner();
 
-    address immutable loanFactory;
+    address loanFactory;
+    mapping(uint256 => uint256) public totalSupply;
 
-    constructor(address _loanFactory) ERC1155("PRINCIPAL TOKEN") {
-        loanFactory = _loanFactory;
+    constructor() ERC1155("PRINCIPAL TOKEN") {
     }
 
     function mint(address account, uint256 id, uint256 value) public {
@@ -21,6 +21,8 @@ contract PrincipalToken is ERC1155 {
 
         bytes memory emptyBytes = new bytes(0);
         _mint(account, id, value, emptyBytes);
+        totalSupply[id] += value;
+
     }
 
     function burn(address account, uint256 id, uint256 value) public {
@@ -29,5 +31,13 @@ contract PrincipalToken is ERC1155 {
         }
 
         _burn(account, id, value);
+        totalSupply[id] -= value;
+
+    }
+
+    // !! Setters for easier re-deployments !!
+    // @dev these are unsafe, and are for hackathon use only. Consider adding access control
+    function setLoanFactory(address _loanFactory) external {
+        loanFactory = _loanFactory;
     }
 }

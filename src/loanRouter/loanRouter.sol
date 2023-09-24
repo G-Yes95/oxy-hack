@@ -11,10 +11,14 @@ interface ILendingPool {
     function collectPayment(address _loanContract, uint256 _tokenId, uint256 _amount) external;
 }
 // iLoanContract
+interface ILoanContract { 
+    function convert() external; 
+    function repay(uint256 _amount) external; 
+}
 // iLoanFactory
 
 interface ILoanFactory {
-    function create(address _borrower, address _lendingPool, uint256 _amount, uint256 _collateralQty, uint256 _paymentFrequency, uint256 _numPayments )
+    function create(address _borrower, address _lendingPool, address _collateralToken, uint256 _amount, uint256 _collateralQty, uint256 _paymentFrequency, uint256 _numPayments )
         external
         returns (address);
 }
@@ -32,10 +36,10 @@ contract LoanRouter {
     }
 
     function createAndBorrow(address _loanFactory, address _rawCollateral, address _lendingPool, uint256 _amount, uint256 _paymentFrequency, uint256 _numPayments)
-        public
+        public returns (address)
     {
         // transfer collateralTokens to this contract
-        TransferHelper.safeTransfer(_rawCollateral, address(this), _amount);
+        TransferHelper.safeTransferFrom(_rawCollateral, msg.sender, address(this), _amount);
         // approve collateral to be buttoned
         TransferHelper.safeApprove(_rawCollateral, buttonMapping[_rawCollateral], _amount);
 
@@ -44,18 +48,21 @@ contract LoanRouter {
         uint256 _liquidityTaken =
             _amount * IERC20Metadata(_asset).decimals() / IERC20Metadata(_rawCollateral).decimals() / 2;
         uint256 collateralQty = IButtonToken(buttonMapping[_rawCollateral]).underlyingToWrapper(_amount);
-        // clone and init loanContract
-        address clone = ILoanFactory(_loanFactory).create(msg.sender, _lendingPool, _liquidityTaken, collateralQty, _paymentFrequency, _numPayments);
+        // // clone and init loanContract
+        address clone = ILoanFactory(_loanFactory).create(msg.sender, _lendingPool,buttonMapping[_rawCollateral],  _liquidityTaken, collateralQty, _paymentFrequency, _numPayments);
 
         // button up the collateralTokens into the new loan
         IButtonToken(buttonMapping[_rawCollateral]).mintFor(clone, _amount);
 
-        // call borrow on LendingPool
+        // // call borrow on LendingPool
         ILendingPool(_lendingPool).borrow(msg.sender, _liquidityTaken);
+
+        return clone; 
     }
 
     function convertAndCollect(address _loanContract, address _lendingPool) public {
         // call convert on LoanContract
+        ILoanContract(_loanContract).convert();
         // call collect on lendingPool
         uint256 _amount = ILendingPool(_lendingPool).stableCoin().balanceOf(_loanContract);
         ILendingPool(_lendingPool).collectPayment(_loanContract, uint256(uint160(_loanContract)), _amount);
@@ -64,15 +71,16 @@ contract LoanRouter {
     function repayAndCollect(address _loanContract, address _lendingPool, uint256 _amount) public {
         // transfer stablecoins to this contract
         address _stablecoin = address(ILendingPool(_lendingPool).stableCoin());
-        TransferHelper.safeTransfer(_stablecoin, address(this), _amount);
+        TransferHelper.safeTransferFrom(_stablecoin, msg.sender, address(this), _amount);
 
         // approve stablecoins to be spent by loanContract
         TransferHelper.safeApprove(_stablecoin, _loanContract, _amount);
 
         // call repay on loanContract
+        ILoanContract(_loanContract).repay(_amount);
 
         // call collect on lendingPool
-        ILendingPool(_lendingPool).collectPayment(_loanContract, uint256(uint160(_loanContract)), _amount);
-        // unwrap collateral to borrower
+        // ILendingPool(_lendingPool).collectPayment(_loanContract, uint256(uint160(_loanContract)), _amount);
+  
     }
 }

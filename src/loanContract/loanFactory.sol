@@ -33,6 +33,7 @@ interface ILendingPool {
     function totalDebt() external view returns (uint256);
 }
 
+
 contract LoanFactory {
     address public immutable template;
     IInterestRateStrategy public immutable interestRateStrategy;
@@ -47,7 +48,7 @@ contract LoanFactory {
     }
 
     //modifier for only loanRouter
-    function create(address _borrower, address _lendingPool, uint256 _amount, uint256 _collateralQty, uint256 _paymentFrequency, uint256 _numPayments)
+    function create(address _borrower, address _lendingPool, address _collateralToken, uint256 _amount, uint256 _collateralQty, uint256 _paymentFrequency, uint256 _numPayments)
         public
         returns (address)
     {
@@ -58,14 +59,16 @@ contract LoanFactory {
         address _asset = address(ILendingPool(_lendingPool).stableCoin());
         uint256 _totalDebt = ILendingPool(_lendingPool).totalDebt();
         (, uint256 _rate) = interestRateStrategy.calculateInterestRates(_asset, _lendingPool, 0, _amount, _totalDebt);
-        uint256 dQty = _amount * _rate / 1e4;
+        uint256 dQty = _amount * 11e3 / 1e4;
 
         // mint principalTokens to lendingPool
         principalToken.mint(_lendingPool, uint256(uint160(clone)), _amount);
         // mint debtTokens to borrower
         debtToken.mint(_borrower, uint256(uint160(clone)), dQty);
 
-        // LoanContract.init(_stableCoin, _collateralToken, _principalToken, _debtToken);
+        LoanContract(clone).init(_lendingPool, _asset, _collateralToken, dQty, _amount, _collateralQty, _paymentFrequency, _numPayments);
+        LoanContract(clone).setBorrower(_borrower);
+        
         return clone;
     }
 }

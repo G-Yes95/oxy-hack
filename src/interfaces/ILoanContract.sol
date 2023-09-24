@@ -1,8 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
-
-import "@openzeppelin/contracts/interfaces/IERC20.sol";
-import "@openzeppelin/contracts/interfaces/IERC1155.sol";
+pragma solidity ^0.8.20;
 
 interface ILoanContract {
     /**
@@ -10,25 +7,47 @@ interface ILoanContract {
      * 1. setting variables
      * 2. setting the initialCollateralAmount to be the balanceOf collateral
      * @dev should only be called once
+     * @param _stableCoin the token address to borrow
+     * @param _collateralToken the token address to collateralize
+     * @param _initialDebtAmount the intial debt token amount
+     * @param _initialPrincipalAmount the intial principal token amount
+     * @param _initialCollateralAmount the collateral token amount
+     * @param _paymentFrequency either weekly or monthly (in seconds)
+     * @param _numOfPayments the number of payments
      */
-    function init(
-        IERC20 _stableCoin,
-        IERC20 _collateralToken,
-        IERC1155 _principalToken,
-        IERC1155 _debtToken
-    ) external;
+    function init(address _lendingPool, address _stableCoin, address _collateralToken, uint256 _initialDebtAmount, uint256 _initialPrincipalAmount, uint256 _initialCollateralAmount, uint256 _paymentFrequency, uint256 _numOfPayments)
+        external;
 
     /**
      * @notice repays the loan with collateral token
-     *
+     * 1. Pulls the collateral from Router
+     * 2. Burn the debt tokens from holder
+     * @dev expects to be called from LoanRouter
+     * @param _debtAmount amount of debt to repay
      */
-    // function repay(uint256 _amount) external;
+    function repay(uint256 _debtAmount) external;
 
-    // function redeem(uint256 _amount) external;
+    /**
+     * @notice Swaps the Max convertable amount of collateral to stable using SwapRouter
+     * @dev expects to be called from LoanRouter
+     */
+    function convert() external;
 
-    // function convert(uint256 _amount) external;
+    /**
+     * @notice Sends stable to LendingPool and returns the collateral
+     * @dev expects to be called from LendingPool
+     * @param _amount amount of collateral to redeem
+     */
+    function redeem(uint256 _amount) external;
 
-    // function maxAmountRedeemable() external view;
 
-    // function maxAmountConvertible() external view;
+    /**
+     * @return the max PrincipalTokens that can be redeemed at current moment
+     */
+    function calculateMaxRedeemableAmount() external view returns (uint256);
+
+    /**
+     * @return the max allowable amount to convert
+     */
+    function calculateMaxConvertibleAmount() external view returns(uint256);
 }
