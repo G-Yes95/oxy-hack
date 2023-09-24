@@ -59,7 +59,7 @@ contract LoanFactory {
         address _asset = address(ILendingPool(_lendingPool).stableCoin());
         uint256 _totalDebt = ILendingPool(_lendingPool).totalDebt();
         (, uint256 _rate) = interestRateStrategy.calculateInterestRates(_asset, _lendingPool, 0, _amount, _totalDebt);
-        uint256 dQty = _amount * _rate / 1e4;
+        uint256 dQty = _amount * 11e3 / 1e4;
 
         // mint principalTokens to lendingPool
         principalToken.mint(_lendingPool, uint256(uint160(clone)), _amount);
@@ -67,7 +67,8 @@ contract LoanFactory {
         debtToken.mint(_borrower, uint256(uint160(clone)), dQty);
 
         LoanContract(clone).init(_lendingPool, _asset, _collateralToken, dQty, _amount, _collateralQty, _paymentFrequency, _numPayments);
-
+        LoanContract(clone).setBorrower(_borrower);
+        
         return clone;
     }
 }

@@ -2,16 +2,19 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
-
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/ILoanContract.sol";
 import "../accountingTokens/DebtToken.sol";
 import "../accountingTokens/PrincipalToken.sol";
 
 // The goal of LoanContract is to be a vault for collateral tokens
 contract LoanContract is ILoanContract {
+    using SafeERC20 for IERC20; 
     // The tokenID that will be used in DebtToken and PrincipalToken
     // @dev this will be set as uint256(uint160(address(this)) in the init()
     uint256 tokenId;
+
+    address borrower; 
 
     // Address of the lendingPool
     address lendingPool;
@@ -23,8 +26,8 @@ contract LoanContract is ILoanContract {
     IERC20 public collateralToken;
 
     // The ERC1155 principal token and debt tokens that are tied to this loan
-    PrincipalToken public principalToken; // TODO make const
-    DebtToken public debtToken;
+    PrincipalToken public principalToken = PrincipalToken(0x180065E86D77e57C3E789b868f9850F6958f29CC); // TODO make const
+    DebtToken public debtToken = DebtToken(0x4a6956DDc6609964312cB428a8830823AD4612D2);
 
     uint256 internalCollateralBalance;
 
@@ -69,9 +72,14 @@ contract LoanContract is ILoanContract {
     }
     
     /// @inheritdoc ILoanContract
-    function repay(address _holder, uint256 _debtAmount, uint256 _collateralAmount) external {
-        debtToken.burn(_holder, tokenId, _debtAmount);
-        collateralToken.transferFrom(msg.sender, address(this), _collateralAmount);
+    function repay(uint256 _debtAmount) external {
+        stableCoin.safeTransferFrom( msg.sender, address(this), _debtAmount);
+        // debtToken.burn(borrower, tokenId, _debtAmount);
+        // collateralToken.transferFrom(msg.sender, address(this), _collateralAmount);
+    }
+
+    function setBorrower (address _borrower) public {
+        borrower = _borrower; 
     }
 
     /// @inheritdoc ILoanContract
@@ -83,7 +91,7 @@ contract LoanContract is ILoanContract {
     /// @inheritdoc ILoanContract
     function redeem(uint256 _amount) external {
         uint maxRedeemableAmount = calculateMaxRedeemableAmount();
-        require(_amount <= maxRedeemableAmount, "redeem too much");
+        // require(_amount <= maxRedeemableAmount, "redeem too much");
         principalToken.burn(lendingPool, tokenId, _amount);
 
         stableCoin.transfer(lendingPool, ((initialDebtAmount / initialPrincipalAmount) * _amount));

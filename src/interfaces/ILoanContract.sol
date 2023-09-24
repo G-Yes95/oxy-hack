@@ -23,11 +23,9 @@ interface ILoanContract {
      * 1. Pulls the collateral from Router
      * 2. Burn the debt tokens from holder
      * @dev expects to be called from LoanRouter
-     * @param _holder account to burn the debt token from
      * @param _debtAmount amount of debt to repay
-     * @param _collateralAmount amount of collateral to pull
      */
-    function repay(address _holder, uint256 _debtAmount, uint256 _collateralAmount) external;
+    function repay(uint256 _debtAmount) external;
 
     /**
      * @notice Swaps the Max convertable amount of collateral to stable using SwapRouter
