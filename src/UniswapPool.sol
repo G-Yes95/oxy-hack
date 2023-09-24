@@ -12,7 +12,7 @@ import {BalanceDelta} from "../lib/v4-core/contracts/types/BalanceDelta.sol";
 import {Currency, CurrencyLibrary} from "../lib/v4-core/contracts/types/Currency.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
+import "forge-std/console.sol";
 error SwapExpired();
 error OnlyPoolManager();
 
@@ -20,6 +20,11 @@ using CurrencyLibrary for Currency;
 using SafeERC20 for IERC20;
 
 contract UniswapPool {
+    struct LiquidityRange {
+        int24 tickLower; // The lower tick of the range
+        int24 tickUpper; // The upper tick of the range
+    }
+    mapping(address => LiquidityRange) public liquidityRanges;
     IPoolManager public poolManager;
 
     // Token addresses
@@ -49,7 +54,9 @@ contract UniswapPool {
     // Function to deposit liquidity
     function depositLiquidity(
         uint256 amountTokenA,
-        uint256 amountTokenB
+        uint256 amountTokenB,
+        int24 tickLower,
+        int24 tickUpper
     ) external {
         // Transfer the tokens from the provider to the contract
         IERC20(tokenA).safeTransferFrom(
@@ -69,35 +76,37 @@ contract UniswapPool {
         // Update the liquidity balance for the provider
         liquidityBalances[msg.sender] += liquidityTokens;
 
+        liquidityRanges[msg.sender] = LiquidityRange(tickLower, tickUpper);
+
         emit LiquidityDeposited(msg.sender, liquidityTokens);
     }
 
     // Function to withdraw liquidity
-    function withdrawLiquidity(uint256 liquidityTokens) external {
+    function withdrawLiquidity(
+        address user,
+        uint256 liquidityTokens
+    ) external returns (uint256 amountTokenA, uint256 amountTokenB) {
         require(
-            liquidityBalances[msg.sender] >= liquidityTokens,
+            liquidityBalances[user] >= liquidityTokens,
             "Not enough liquidity tokens"
         );
 
         // Burn the liquidity tokens from the provider's balance
-        liquidityBalances[msg.sender] -= liquidityTokens;
+        liquidityBalances[user] -= liquidityTokens;
 
         // Calculate the amount of each token to return (this is a simplified example, actual calculation might be different)
-        uint256 amountTokenA = liquidityTokens / 2; // Simplified for demonstration
-        uint256 amountTokenB = liquidityTokens / 2; // Simplified for demonstration
+        amountTokenA = liquidityTokens / 2; // Simplified for demonstration
+        amountTokenB = liquidityTokens / 2; // Simplified for demonstration
 
         // Transfer the tokens back to the provider
         IERC20(tokenA).safeTransfer(msg.sender, amountTokenA);
         IERC20(tokenB).safeTransfer(msg.sender, amountTokenB);
 
-        emit LiquidityWithdrawn(msg.sender, liquidityTokens);
+        emit LiquidityWithdrawn(user, liquidityTokens);
     }
 
-    function lockAcquired(
-        uint256,
-        bytes calldata data
-    ) external returns (bytes memory) {
-        if (msg.sender == address(poolManager)) {
+    function lockAcquired(bytes calldata data) external returns (bytes memory) {
+        if (msg.sender != address(poolManager)) {
             revert OnlyPoolManager();
         }
 

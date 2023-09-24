@@ -42,12 +42,14 @@ contract LendingHook is BaseHook {
     constructor(
         IPoolManager _poolManager,
         address _lendingPool,
-        IUniswapPool _uniswapPool
+        address _uniswapPool
     ) BaseHook(_poolManager) {
         lendingPool = LendingPool(_lendingPool);
-        uniswapPool = _uniswapPool;
         liquidityInUniswap = true;
+        uniswapPool = IUniswapPool(_uniswapPool);
     }
+
+    // function validateHookAddress(BaseHook _this) internal pure override {}
 
     // Required override function for BaseHook to let the PoolManager know which hooks are implemented
     function getHooksCalls() public pure override returns (Hooks.Calls memory) {
@@ -132,32 +134,6 @@ contract LendingHook is BaseHook {
         return BaseHook.beforeSwap.selector;
     }
 
-    // function afterSwap(
-    //     address,
-    //     PoolKey calldata poolKey,
-    //     IPoolManager.SwapParams calldata,
-    //     BalanceDelta,
-    //     bytes calldata
-    // ) external override returns (bytes4) {
-    //     LiquidityRange memory range = liquidityRanges[
-    //         PoolIdLibrary.toId(poolKey)
-    //     ];
-
-    //     uint256 currentPrice = convertSqrtPriceX96ToPrice(poolKey.sqrtPriceX96);
-
-    //     if (currentPrice < range.tickLower || currentPrice > range.tickUpper) {
-    //         // If it is outside the range, get all the liquidity provided
-    //         uint256 liquidityToRetrieve = _retrieveLiquidity(
-    //             PoolIdLibrary.toId(poolKey)
-    //         );
-
-    //         // Deposit the retrieved liquidity in the lending pool
-    //         lendingPool.deposit(liquidityToRetrieve);
-    //     }
-
-    //     return BaseHook.afterSwap.selector;
-    // }
-
     // Helper functions
     function _retrieveLiquidity(
         PoolId poolId
@@ -171,7 +147,7 @@ contract LendingHook is BaseHook {
         );
         // Withdraw from Uniswap into this contract
         (uint256 amountTokenA, uint256 amountTokenB) = uniswapPool
-            .withdrawLiquidity(userLiquidity);
+            .withdrawLiquidity(user1, userLiquidity);
 
         // Return token amounts
         return (amountTokenA, amountTokenB);
@@ -221,6 +197,7 @@ contract LendingHook is BaseHook {
 // INTERFACES
 interface IUniswapPool {
     function withdrawLiquidity(
+        address user,
         uint256 liquidityTokens
     ) external returns (uint256, uint256);
 
