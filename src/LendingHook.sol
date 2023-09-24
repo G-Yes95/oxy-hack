@@ -11,6 +11,7 @@ import {PoolKey} from "../lib/v4-core/contracts/types/PoolKey.sol";
 import {BalanceDelta} from "../lib/v4-core/contracts/types/BalanceDelta.sol";
 import {TickMath} from "../lib/v4-core/contracts/libraries/TickMath.sol";
 import {LendingPool} from "../src/lendingPool/LendingPool.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract LendingHook is BaseHook {
     using PoolIdLibrary for PoolId;
@@ -18,8 +19,14 @@ contract LendingHook is BaseHook {
     // Address of the lending pool
     LendingPool public lendingPool;
 
+    IUniswapPool public uniswapPool;
+
     // Keeps track of where the liquidity currently is
     bool public liquidityInUniswap;
+
+    // Users
+    address public user1;
+    address public user2;
 
     struct LiquidityRange {
         int24 tickLower; // The lower tick of the range
@@ -28,14 +35,17 @@ contract LendingHook is BaseHook {
 
     // The key is the pool ID (PoolId), which is derived from the PoolKey using the toPoolId() function.
     // The value is the LiquidityRange struct that represents the range of ticks where liquidity has been provided.
-    mapping(PoolId => LiquidityRange) public liquidityRanges;
+    mapping(PoolId => mapping(address => LiquidityRange))
+        public liquidityRanges;
 
     // Initialize BaseHook and ERC1155 parent contracts in the constructor
     constructor(
         IPoolManager _poolManager,
-        address _lendingPool
+        address _lendingPool,
+        IUniswapPool _uniswapPool
     ) BaseHook(_poolManager) {
         lendingPool = LendingPool(_lendingPool);
+        uniswapPool = _uniswapPool;
         liquidityInUniswap = true;
     }
 
@@ -63,7 +73,7 @@ contract LendingHook is BaseHook {
     ) external override returns (bytes4) {
         LiquidityRange memory range = liquidityRanges[
             PoolIdLibrary.toId(poolKey)
-        ];
+        ][user1]; // Because fuck it...
 
         // Step 1: Get the full tuple
         (uint160 sqrtPriceX96FromTuple, , , ) = poolManager.getSlot0(
@@ -93,10 +103,15 @@ contract LendingHook is BaseHook {
                 adjustedSqrtPriceX96 > upperSqrtPriceX96
             ) {
                 // If the liquidity is in Uniswap and the estimated price after the swap is outside the range
-                uint256 liquidityToRetrieve = _retrieveLiquidity(
+                // Here we assume that liquidityToRetrieve is the stable coin and is the only thing we want to deposit in lending pool
+                (uint256 liquidityToRetrieve, ) = _retrieveLiquidity(
                     PoolIdLibrary.toId(poolKey)
                 );
-                lendingPool.deposit(liquidityToRetrieve);
+                IERC20(lendingPool.stableCoin()).approve(
+                    address(lendingPool),
+                    liquidityToRetrieve
+                );
+                lendingPool.deposit(liquidityToRetrieve, user1);
                 liquidityInUniswap = false;
             }
             // If the liquidity is in Uniswap and the estimated price after the swap is within the range, do nothing.
@@ -109,10 +124,7 @@ contract LendingHook is BaseHook {
                 uint256 liquidityToProvide = lendingPool.withdraw(
                     params.amountSpecified
                 ); // Assuming the lendingPool has a withdraw function that returns the liquidity
-                _provideLiquidityToUniswap(
-                    PoolIdLibrary.toId(poolKey),
-                    liquidityToProvide
-                );
+                _provideLiquidityToUniswap(PoolIdLibrary.toId(poolKey));
                 liquidityInUniswap = true;
             }
             // If the liquidity is in the lending pool and the estimated price after the swap is outside the range, do nothing.
@@ -120,49 +132,58 @@ contract LendingHook is BaseHook {
         return BaseHook.beforeSwap.selector;
     }
 
-    function afterSwap(
-        address,
-        PoolKey calldata poolKey,
-        IPoolManager.SwapParams calldata,
-        BalanceDelta,
-        bytes calldata
-    ) external override returns (bytes4) {
-        LiquidityRange memory range = liquidityRanges[
-            PoolIdLibrary.toId(poolKey)
-        ];
+    // function afterSwap(
+    //     address,
+    //     PoolKey calldata poolKey,
+    //     IPoolManager.SwapParams calldata,
+    //     BalanceDelta,
+    //     bytes calldata
+    // ) external override returns (bytes4) {
+    //     LiquidityRange memory range = liquidityRanges[
+    //         PoolIdLibrary.toId(poolKey)
+    //     ];
 
-        uint256 currentPrice = convertSqrtPriceX96ToPrice(poolKey.sqrtPriceX96);
+    //     uint256 currentPrice = convertSqrtPriceX96ToPrice(poolKey.sqrtPriceX96);
 
-        if (currentPrice < range.tickLower || currentPrice > range.tickUpper) {
-            // If it is outside the range, get all the liquidity provided
-            uint256 liquidityToRetrieve = _retrieveLiquidity(
-                PoolIdLibrary.toId(poolKey)
-            );
+    //     if (currentPrice < range.tickLower || currentPrice > range.tickUpper) {
+    //         // If it is outside the range, get all the liquidity provided
+    //         uint256 liquidityToRetrieve = _retrieveLiquidity(
+    //             PoolIdLibrary.toId(poolKey)
+    //         );
 
-            // Deposit the retrieved liquidity in the lending pool
-            lendingPool.deposit(liquidityToRetrieve);
-        }
+    //         // Deposit the retrieved liquidity in the lending pool
+    //         lendingPool.deposit(liquidityToRetrieve);
+    //     }
 
-        return BaseHook.afterSwap.selector;
-    }
+    //     return BaseHook.afterSwap.selector;
+    // }
 
     // Helper functions
-    function _retrieveLiquidity(PoolId poolId) internal returns (uint256) {
-        // Retrieve the liquidity for the given pool. This will burn the liquidity tokens and remove the liquidity from the pool.
-        uint256 liquidity = poolManager.burn(
+    function _retrieveLiquidity(
+        PoolId poolId
+    ) internal returns (uint256, uint256) {
+        // Get the ammount of liquidity in the uniswap pool
+        uint256 userLiquidity = poolManager.getLiquidity(
             poolId,
-            address(this),
-            address(this)
+            user1,
+            liquidityRanges[poolId][user1].tickLower,
+            liquidityRanges[poolId][user1].tickUpper
         );
+        // Withdraw from Uniswap into this contract
+        (uint256 amountTokenA, uint256 amountTokenB) = uniswapPool
+            .withdrawLiquidity(userLiquidity);
 
-        // Transfer the underlying assets (tokens) from Uniswap to the LendingHook contract
-        // This step depends on the implementation of the Uniswap pool and how it handles liquidity removal.
-        // You might need to call additional functions or handle token transfers here.
+        // Return token amounts
+        return (amountTokenA, amountTokenB);
+    }
 
-        // Update the liquidityRanges mapping to reflect the removed liquidity
-        delete liquidityRanges[poolId];
-
-        return liquidity;
+    function _provideLiquidityToUniswap(PoolId poolId, address user) internal {
+        // get amount of liquidity in the lending pool
+        uint256 userPoolTokenBalance = lendingPool.balanceOf(user); // This should be equal to the amount of money he deposited in the lending pool
+        // withdraw liquidity from lending pool into this contract
+        lendingPool.withdraw(userPoolTokenBalance);
+        // call uniswap deposit liquidity
+        uniswapPool.depositLiquidity(userPoolTokenBalance);
     }
 
     function convertSqrtPriceX96ToPrice(
@@ -190,4 +211,19 @@ contract LendingHook is BaseHook {
 
         return adjustedSqrtPriceX96;
     }
+
+    function setUserAddress(address _user1, address _user2) public {
+        user1 = _user1;
+        user2 = _user2;
+    }
+}
+
+// INTERFACES
+interface IUniswapPool {
+    function withdrawLiquidity(uint256 liquidityTokens) external;
+
+    function depositLiquidity(
+        uint256 amountTokenA,
+        uint256 amountTokenB
+    ) external;
 }

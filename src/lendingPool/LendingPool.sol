@@ -90,7 +90,7 @@ contract LendingPool is ERC20("PoolToken", "PT") {
      * @dev Called by lender to deposit funds into the pool.
      */
 
-    function deposit(uint256 _amount) external {
+    function deposit(uint256 _amount, address _for) external {
         require(_amount > 0, "Amount must be greater than 0");
 
         // Re-calculate the interest rates
@@ -106,7 +106,7 @@ contract LendingPool is ERC20("PoolToken", "PT") {
         stableCoin.safeTransferFrom(msg.sender, address(this), _amount);
         emit Deposited(msg.sender, _amount);
 
-        _mint(msg.sender, _amount);
+        _mint(_for, _amount);
         emit PoolTokensMinted(msg.sender, _amount);
     }
 

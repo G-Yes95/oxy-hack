@@ -22,14 +22,20 @@ using SafeERC20 for IERC20;
 contract UniswapPool {
     IPoolManager public poolManager;
 
+    // Token addresses
+    address public tokenA;
+    address public tokenB;
+
     // Mapping to track liquidity token balances for each provider
     mapping(address => uint256) public liquidityBalances;
 
     event LiquidityDeposited(address indexed provider, uint256 amount);
     event LiquidityWithdrawn(address indexed provider, uint256 amount);
 
-    constructor(IPoolManager _poolManager) {
+    constructor(IPoolManager _poolManager, address tokenA_, address tokenB_) {
         poolManager = _poolManager;
+        tokenA = tokenA_;
+        tokenB = tokenB_;
     }
 
     function swapTokens(
