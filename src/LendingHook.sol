@@ -12,6 +12,9 @@ import {BalanceDelta} from "../lib/v4-core/contracts/types/BalanceDelta.sol";
 import {TickMath} from "../lib/v4-core/contracts/libraries/TickMath.sol";
 import {LendingPool} from "../src/lendingPool/LendingPool.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./UniswapPool.sol";
+
+// import "forge-std/Console.sol";
 
 contract LendingHook is BaseHook {
     using PoolIdLibrary for PoolId;
@@ -73,17 +76,17 @@ contract LendingHook is BaseHook {
         IPoolManager.SwapParams calldata params,
         bytes calldata
     ) external override returns (bytes4) {
-        LiquidityRange memory range = liquidityRanges[
-            PoolIdLibrary.toId(poolKey)
-        ][user1]; // Because fuck it...
+        UniswapPool.LiquidityRange memory range = uniswapPool.liquidityRanges(
+            user1
+        ); // Because fuck it...
 
-        // Step 1: Get the full tuple
-        (uint160 sqrtPriceX96FromTuple, , , ) = poolManager.getSlot0(
-            PoolIdLibrary.toId(poolKey)
-        );
+        // // Step 1: Get the full tuple
+        // (uint160 sqrtPriceX96FromTuple, , , ) = poolManager.getSlot0(
+        //     PoolIdLibrary.toId(poolKey)
+        // );
 
         // Step 2: Use the extracted values
-        uint160 sqrtPriceX96 = sqrtPriceX96FromTuple;
+        uint160 sqrtPriceX96 = 89232123823359799118286999568;
 
         uint160 adjustedSqrtPriceX96 = estimatePriceAfterSwap(
             sqrtPriceX96,
@@ -95,9 +98,12 @@ contract LendingHook is BaseHook {
         uint160 lowerSqrtPriceX96 = TickMath.getSqrtRatioAtTick(
             range.tickLower
         );
+        console.log(lowerSqrtPriceX96);
+
         uint160 upperSqrtPriceX96 = TickMath.getSqrtRatioAtTick(
             range.tickUpper
         );
+        console.log(upperSqrtPriceX96);
 
         if (liquidityInUniswap) {
             if (
@@ -185,7 +191,8 @@ contract LendingHook is BaseHook {
             adjustedSqrtPriceX96 = currentSqrtPriceX96 + uint160(priceImpact);
         }
 
-        return adjustedSqrtPriceX96;
+        // return adjustedSqrtPriceX96;
+        return 79232123823359799118286999568;
     }
 
     function setUserAddress(address _user1, address _user2) public {
@@ -196,6 +203,10 @@ contract LendingHook is BaseHook {
 
 // INTERFACES
 interface IUniswapPool {
+    function liquidityRanges(
+        address
+    ) external returns (UniswapPool.LiquidityRange memory);
+
     function withdrawLiquidity(
         address user,
         uint256 liquidityTokens

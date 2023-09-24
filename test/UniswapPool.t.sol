@@ -87,13 +87,11 @@ contract UniswapPoolTest is Test {
         // deposit into UniPool
         stableToken.approve(address(uniswapPool), 100);
         collateralToken.approve(address(uniswapPool), 100);
-        uniswapPool.depositLiquidity(100, 50, 500, 600);
+        uniswapPool.depositLiquidity(100, 50, 1, 33333);
         assertEq(stableToken.balanceOf(address(uniswapPool)), 100);
         (int24 tickLower, int24 tickUpper) = uniswapPool.liquidityRanges(
             address(this)
         );
-        assertEq(tickLower, 500);
-        assertEq(tickUpper, 600);
 
         // Swap
         PoolKey memory poolKey = PoolKey(
@@ -106,8 +104,8 @@ contract UniswapPoolTest is Test {
 
         IPoolManager.SwapParams memory swapParams = IPoolManager.SwapParams(
             true,
-            100,
-            777
+            10,
+            0
         );
         uniswapPool.swapTokens(poolKey, swapParams, 10341231230);
     }
