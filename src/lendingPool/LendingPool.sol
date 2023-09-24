@@ -14,13 +14,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 contract LendingPool is ERC20("PoolToken", "PT"), ERC1155Holder {
     using SafeERC20 for IERC20;
 
-    /**
-     *
-     */
-    /*                                       DATA VARIABLES                                     */
-    /**
-     *
-     */
+    // DATA VARIABLES
 
     // This represents the stablecoin (e.g., USDC) being supplied to and borrowed from the pool.
     IERC20 public stableCoin;
@@ -37,13 +31,7 @@ contract LendingPool is ERC20("PoolToken", "PT"), ERC1155Holder {
     // Variable to keep track of the total debt owed to the pool
     uint256 public totalDebt;
 
-    /**
-     *
-     */
-    /*                                    EVENT DEFINITIONS                                     */
-    /**
-     *
-     */
+    // EVENT DEFINITIONS
 
     event Deposited(address indexed user, uint256 amount);
     event Borrowed(address indexed borrower, uint256 amount);
@@ -58,15 +46,14 @@ contract LendingPool is ERC20("PoolToken", "PT"), ERC1155Holder {
         _;
     }
 
-    /**
-     *
-     */
-    /*                                       CONSTRUCTOR                                        */
-    /**
-     *
-     */
+    // CONSTRUCTOR
 
-    constructor(address _stableCoin, address _principalToken, address _loanRouter, address _interestRateStrategy) {
+    constructor(
+        address _stableCoin,
+        address _principalToken,
+        address _loanRouter,
+        address _interestRateStrategy
+    ) {
         stableCoin = IERC20(_stableCoin);
         loanRouter = _loanRouter;
         principalToken = IERC1155(_principalToken);
@@ -74,13 +61,7 @@ contract LendingPool is ERC20("PoolToken", "PT"), ERC1155Holder {
         totalDebt = 0;
     }
 
-    /**
-     *
-     */
-    /*                                   UTILITY FUNCTIONS                                      */
-    /**
-     *
-     */
+    // UTILITY FUNCTIONS
 
     /**
      * @dev This function allows the owner to set the address of the loanRouter.
@@ -103,29 +84,29 @@ contract LendingPool is ERC20("PoolToken", "PT"), ERC1155Holder {
         interestRateStrategy = IInterestRateStrategy(_interestRateStrategy);
     }
 
-    /**
-     *
-     */
-    /*                                   CONTRACT FUNCTIONS                                     */
-    /**
-     *
-     */
+    // CONTRACT FUNCTIONS
 
     /**
      * @dev Called by lender to deposit funds into the pool.
      */
 
-    function deposit(uint256 _amount) external {
+    function deposit(uint256 _amount, address _for) external {
         require(_amount > 0, "Amount must be greater than 0");
 
         // Re-calculate the interest rates
-        interestRateStrategy.calculateInterestRates(address(stableCoin), address(this), _amount, 0, totalDebt);
+        interestRateStrategy.calculateInterestRates(
+            address(stableCoin),
+            address(this),
+            _amount,
+            0,
+            totalDebt
+        );
 
         // transfer stablecoins
         stableCoin.safeTransferFrom(msg.sender, address(this), _amount);
         emit Deposited(msg.sender, _amount);
 
-        _mint(msg.sender, _amount);
+        _mint(_for, _amount);
         emit PoolTokensMinted(msg.sender, _amount);
     }
 
@@ -133,19 +114,30 @@ contract LendingPool is ERC20("PoolToken", "PT"), ERC1155Holder {
      * @dev Called by lender to withdraw funds into the pool.
      */
 
-    function withdraw(uint256 _amount) external {
+    function withdraw(uint256 _amount) external returns (uint256) {
         require(_amount > 0, "Amount must be greater than 0");
-        require(_amount <= stableCoin.balanceOf(address(this)), "Amount exceeds pool balance");
+        require(
+            _amount <= stableCoin.balanceOf(address(this)),
+            "Amount exceeds pool balance"
+        );
 
         // Re-calculate the interest rates
-        interestRateStrategy.calculateInterestRates(address(stableCoin), address(this), 0, _amount, totalDebt);
+        interestRateStrategy.calculateInterestRates(
+            address(stableCoin),
+            address(this),
+            0,
+            _amount,
+            totalDebt
+        );
 
         // Calculate maximum amount of stable coins the lender can withdraw - make thismits own view function
-        uint256 maxWithdrawal = (balanceOf(msg.sender) * stableCoin.balanceOf(address(this))) / totalSupply();
+        uint256 maxWithdrawal = (balanceOf(msg.sender) *
+            stableCoin.balanceOf(address(this))) / totalSupply();
         require(_amount <= maxWithdrawal, "Withdrawal exceeds allowed amount");
 
         // Calculating how many pool tokens need to be burned
-        uint256 requiredPoolTokens = (_amount * totalSupply()) / stableCoin.balanceOf(address(this));
+        uint256 requiredPoolTokens = (_amount * totalSupply()) /
+            stableCoin.balanceOf(address(this));
 
         // Burns the pool tokens directly at the lender's address
         _burn(msg.sender, requiredPoolTokens);
@@ -154,6 +146,9 @@ contract LendingPool is ERC20("PoolToken", "PT"), ERC1155Holder {
         // transfers stablecoins to caller in proportion to the tokens he sent
         stableCoin.safeTransfer(msg.sender, _amount);
         emit Withdrawal(msg.sender, _amount);
+
+        // return the amount of stablecoins withdrawn so that LendingHook can use it.
+        return _amount;
     }
 
     /**
@@ -163,9 +158,16 @@ contract LendingPool is ERC20("PoolToken", "PT"), ERC1155Holder {
      * @param _loanContract The address of the loan contract.
      * @param _tokenId The ID of the principal token.
      */
-    function collectPayment(address _loanContract, uint256 _tokenId, uint256 _amount) external onlyLoanRouter {
+    function collectPayment(
+        address _loanContract,
+        uint256 _tokenId,
+        uint256 _amount
+    ) external onlyLoanRouter {
         // Get the balance of principal tokens held by this contract
-        uint256 principalTokenBalance = principalToken.balanceOf(address(this), _tokenId);
+        uint256 principalTokenBalance = principalToken.balanceOf(
+            address(this),
+            _tokenId
+        );
 
         // Dynamically cast the address of the ILoanContract interface
         ILoanContract loanContract = ILoanContract(_loanContract);
@@ -174,7 +176,13 @@ contract LendingPool is ERC20("PoolToken", "PT"), ERC1155Holder {
         totalDebt -= _amount;
 
         // Re-calculate the interest rates
-        interestRateStrategy.calculateInterestRates(address(stableCoin), address(this), _amount, 0, totalDebt);
+        interestRateStrategy.calculateInterestRates(
+            address(stableCoin),
+            address(this),
+            _amount,
+            0,
+            totalDebt
+        );
 
         // Call the collectPayment function in the loan contract - does principal token need approval to be burned?
         loanContract.redeem(Math.min(principalTokenBalance, _amount));
@@ -183,14 +191,26 @@ contract LendingPool is ERC20("PoolToken", "PT"), ERC1155Holder {
     /**
      * @dev Called by the loanRouter. This function accepts the principal token and sends the borrowed funds to the loanRouter.
      */
-    function borrow(address _borrower, uint256 _amount) external onlyLoanRouter {
-        require(_amount <= stableCoin.balanceOf(address(this)), "Not enough funds in the pool");
+    function borrow(
+        address _borrower,
+        uint256 _amount
+    ) external onlyLoanRouter {
+        require(
+            _amount <= stableCoin.balanceOf(address(this)),
+            "Not enough funds in the pool"
+        );
 
         // Update the total debt value
         totalDebt += _amount;
 
         // Re-calculate the interest rates
-        interestRateStrategy.calculateInterestRates(address(stableCoin), address(this), 0, _amount, totalDebt);
+        interestRateStrategy.calculateInterestRates(
+            address(stableCoin),
+            address(this),
+            0,
+            _amount,
+            totalDebt
+        );
 
         // Transfer the requested stableCoin to the loanRouter.
         stableCoin.safeTransfer(_borrower, _amount);
@@ -198,13 +218,7 @@ contract LendingPool is ERC20("PoolToken", "PT"), ERC1155Holder {
     }
 }
 
-/**
- *
- */
-/*                                         INTERFACES                                       */
-/**
- *
- */
+// INTERFACES
 
 interface ILoanContract {
     function redeem(uint256 debtTokenBalance) external;
