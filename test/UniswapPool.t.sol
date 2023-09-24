@@ -92,7 +92,10 @@ contract UniswapPoolTest is Test {
         (int24 tickLower, int24 tickUpper) = uniswapPool.liquidityRanges(
             address(this)
         );
-
+        console.log("UniswapPool balance before swap:");
+        console.log(stableToken.balanceOf(address(uniswapPool)));
+        console.log("LendingPool balance before swap:");
+        console.log(stableToken.balanceOf(address(lendingPool)));
         // Swap
         PoolKey memory poolKey = PoolKey(
             Currency.wrap(address(stableToken)),
@@ -108,5 +111,16 @@ contract UniswapPoolTest is Test {
             0
         );
         uniswapPool.swapTokens(poolKey, swapParams, 10341231230);
+        console.log("============");
+        console.log("UniswapPool balance after swap:");
+        console.log(stableToken.balanceOf(address(uniswapPool)));
+
+        console.log("LendingPool balance after swap:");
+        console.log(stableToken.balanceOf(address(lendingPool)));
+        lendingHook.setPrice(99232123823359799118286999568);
+        uniswapPool.swapTokens(poolKey, swapParams, 10341231230);
+
+        console.log("LendingPool balance after swap:");
+        console.log(stableToken.balanceOf(address(lendingPool)));
     }
 }

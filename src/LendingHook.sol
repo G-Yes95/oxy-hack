@@ -36,6 +36,9 @@ contract LendingHook is BaseHook {
         int24 tickUpper; // The upper tick of the range
     }
 
+    // TODO remove this and setter in prod
+    uint160 sqrtPriceX96;
+
     // The key is the pool ID (PoolId), which is derived from the PoolKey using the toPoolId() function.
     // The value is the LiquidityRange struct that represents the range of ticks where liquidity has been provided.
     mapping(PoolId => mapping(address => LiquidityRange))
@@ -86,8 +89,6 @@ contract LendingHook is BaseHook {
         // );
 
         // Step 2: Use the extracted values
-        uint160 sqrtPriceX96 = 89232123823359799118286999568;
-
         // TODO will use in production. We use setters to test functionality
         uint160 adjustedSqrtPriceX96 = estimatePriceAfterSwap(
             sqrtPriceX96,
@@ -99,12 +100,10 @@ contract LendingHook is BaseHook {
         uint160 lowerSqrtPriceX96 = TickMath.getSqrtRatioAtTick(
             range.tickLower
         );
-        console.log(lowerSqrtPriceX96);
 
         uint160 upperSqrtPriceX96 = TickMath.getSqrtRatioAtTick(
             range.tickUpper
         );
-        console.log(upperSqrtPriceX96);
 
         if (liquidityInUniswap) {
             if (
@@ -195,9 +194,14 @@ contract LendingHook is BaseHook {
         return adjustedSqrtPriceX96;
     }
 
+    // SETTERS for hackathon use only
     function setUserAddress(address _user1, address _user2) public {
         user1 = _user1;
         user2 = _user2;
+    }
+
+    function setPrice(uint160 _sqrtPriceX96) public {
+        sqrtPriceX96 = _sqrtPriceX96;
     }
 }
 
