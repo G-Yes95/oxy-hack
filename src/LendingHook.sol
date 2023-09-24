@@ -88,6 +88,7 @@ contract LendingHook is BaseHook {
         // Step 2: Use the extracted values
         uint160 sqrtPriceX96 = 89232123823359799118286999568;
 
+        // TODO will use in production. We use setters to test functionality
         uint160 adjustedSqrtPriceX96 = estimatePriceAfterSwap(
             sqrtPriceX96,
             params.amountSpecified,
@@ -107,8 +108,8 @@ contract LendingHook is BaseHook {
 
         if (liquidityInUniswap) {
             if (
-                adjustedSqrtPriceX96 < lowerSqrtPriceX96 ||
-                adjustedSqrtPriceX96 > upperSqrtPriceX96
+                sqrtPriceX96 < lowerSqrtPriceX96 ||
+                sqrtPriceX96 > upperSqrtPriceX96
             ) {
                 // If the liquidity is in Uniswap and the estimated price after the swap is outside the range
                 // Here we assume that liquidityToRetrieve is the stable coin and is the only thing we want to deposit in lending pool
@@ -125,8 +126,8 @@ contract LendingHook is BaseHook {
             // If the liquidity is in Uniswap and the estimated price after the swap is within the range, do nothing.
         } else {
             if (
-                adjustedSqrtPriceX96 >= lowerSqrtPriceX96 &&
-                adjustedSqrtPriceX96 <= upperSqrtPriceX96
+                sqrtPriceX96 >= lowerSqrtPriceX96 &&
+                sqrtPriceX96 <= upperSqrtPriceX96
             ) {
                 // If the liquidity is in the lending pool and the estimated price after the swap is within the range
                 uint256 liquidityToProvide = lendingPool.withdraw(
@@ -191,8 +192,7 @@ contract LendingHook is BaseHook {
             adjustedSqrtPriceX96 = currentSqrtPriceX96 + uint160(priceImpact);
         }
 
-        // return adjustedSqrtPriceX96;
-        return 79232123823359799118286999568;
+        return adjustedSqrtPriceX96;
     }
 
     function setUserAddress(address _user1, address _user2) public {
