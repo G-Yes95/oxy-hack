@@ -14,7 +14,7 @@ interface ILendingPool {
 // iLoanFactory
 
 interface ILoanFactory {
-    function create(address _borrower, address _lendingPool, uint256 _amount, uint256 _collateralQty)
+    function create(address _borrower, address _lendingPool, uint256 _amount, uint256 _collateralQty, uint256 _paymentFrequency, uint256 _numPayments )
         external
         returns (address);
 }
@@ -31,7 +31,7 @@ contract LoanRouter {
         buttonMapping[_rawCollateral[1]] = _buttonToken[1];
     }
 
-    function createAndBorrow(address _loanFactory, address _rawCollateral, address _lendingPool, uint256 _amount)
+    function createAndBorrow(address _loanFactory, address _rawCollateral, address _lendingPool, uint256 _amount, uint256 _paymentFrequency, uint256 _numPayments)
         public
     {
         // transfer collateralTokens to this contract
@@ -45,7 +45,7 @@ contract LoanRouter {
             _amount * IERC20Metadata(_asset).decimals() / IERC20Metadata(_rawCollateral).decimals() / 2;
         uint256 collateralQty = IButtonToken(buttonMapping[_rawCollateral]).underlyingToWrapper(_amount);
         // clone and init loanContract
-        address clone = ILoanFactory(_loanFactory).create(msg.sender, _lendingPool, _liquidityTaken, collateralQty);
+        address clone = ILoanFactory(_loanFactory).create(msg.sender, _lendingPool, _liquidityTaken, collateralQty, _paymentFrequency, _numPayments);
 
         // button up the collateralTokens into the new loan
         IButtonToken(buttonMapping[_rawCollateral]).mintFor(clone, _amount);
