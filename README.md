@@ -20,13 +20,25 @@ Goerli
 
 | Contract      | Address |
 | ----------- | ----------- |
-| debtToken      | Text       |
-| principalToken   | Text        |
-| InterestRateStrategy   | Text        |
-| loanFactory   | Text        |
-| loanRouter   | Text        |
-| lendingPool (WEENUS)   | Text        |
+| debtToken      | [0x180065E86D77e57C3E789b868f9850F6958f29CC](https://goerli.etherscan.io/address/0x180065E86D77e57C3E789b868f9850F6958f29CC)    |
+| principalToken   | [0x4a6956DDc6609964312cB428a8830823AD4612D2](https://goerli.etherscan.io/address/0x4a6956DDc6609964312cB428a8830823AD4612D2)         |
+| InterestRateStrategy   | [0x9BcB22bfEC666023037D9C80b8d89f91466e787b](https://goerli.etherscan.io/address/0x9BcB22bfEC666023037D9C80b8d89f91466e787b)         |
+| loanFactory   | [0xBF85Db5E3C03f0b2f217Ad1EE2D483c6B2d66c4F](https://goerli.etherscan.io/address/0xBF85Db5E3C03f0b2f217Ad1EE2D483c6B2d66c4F)         |
+| loanRouter   | [0xDCEC347D3B12e53EB38f3576BD721c1D4eB8B2D9](https://goerli.etherscan.io/address/0xDCEC347D3B12e53EB38f3576BD721c1D4eB8B2D9)         |
+| lendingPool (WEENUS)   | [0xD96E6E786997b39F74690602e6e4B58EB869f2c8](https://goerli.etherscan.io/address/0xD96E6E786997b39F74690602e6e4B58EB869f2c8)         |
+| lendingPool (XEENUS)   | [0x1AB89F6A6852761067Ea42e30c4e7044f7C1a4cb](https://goerli.etherscan.io/address/0x1AB89F6A6852761067Ea42e30c4e7044f7C1a4cb)         |
 
+
+BASE-Goerli
+
+| Contract      | Address |
+| ----------- | ----------- |
+| debtToken      | [0x86EfbDdB3288b6F424D04d9DA2CcE38E543C4516](https://goerli.basescan.org/address/0x86EfbDdB3288b6F424D04d9DA2CcE38E543C4516)    |
+| principalToken   | [0xf90120611e2d34cdecfb526f57a18782bd0c2b6f](https://goerli.basescan.org/address/0xf90120611e2d34cdecfb526f57a18782bd0c2b6f)       |
+| InterestRateStrategy   |[0xdfe5010d0AfBb0b988087C43792De3212A23318a](https://goerli.basescan.org/address/0xdfe5010d0AfBb0b988087C43792De3212A23318a)       |
+| loanFactory   |[0xF250d169DAb339a7083d6A7D593881c25a48aAB2](https://goerli.basescan.org/address/0xF250d169DAb339a7083d6A7D593881c25a48aAB2)          |
+| loanRouter   | [0x0CBD3f6FE7D6f97d6145b58197E3FB76BEb81aC6](https://goerli.basescan.org/address/0x0CBD3f6FE7D6f97d6145b58197E3FB76BEb81aC6)         |
+| lendingPool (USDT)   |[0x2F4C8775E1f56cc7dE85B7059A07940092382A5c](https://goerli.basescan.org/address/0x2F4C8775E1f56cc7dE85B7059A07940092382A5c)       |
 
 
 # Bounty Infomation 
