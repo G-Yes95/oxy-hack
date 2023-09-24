@@ -11,14 +11,18 @@ interface ILoanContract {
      * 2. setting the initialCollateralAmount to be the balanceOf collateral
      * @dev should only be called once
      */
-    function init(IERC20 _stableCoin, IERC20 _collateralToken, IERC1155 _principalToken, IERC1155 _debtToken)
-        external;
+    function init(
+        IERC20 _stableCoin,
+        IERC20 _collateralToken,
+        IERC1155 _principalToken,
+        IERC1155 _debtToken
+    ) external;
 
     /**
      * @notice repays the loan with collateral token
      *
      */
-    function repay(uint256 _amount) external;
+    // function repay(uint256 _amount) external;
 
     // function redeem(uint256 _amount) external;
 

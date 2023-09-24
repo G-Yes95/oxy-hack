@@ -122,9 +122,9 @@ contract LendingHook is BaseHook {
             ) {
                 // If the liquidity is in the lending pool and the estimated price after the swap is within the range
                 uint256 liquidityToProvide = lendingPool.withdraw(
-                    params.amountSpecified
+                    uint256(params.amountSpecified)
                 ); // Assuming the lendingPool has a withdraw function that returns the liquidity
-                _provideLiquidityToUniswap(PoolIdLibrary.toId(poolKey));
+                _provideLiquidityToUniswap(PoolIdLibrary.toId(poolKey), user1);
                 liquidityInUniswap = true;
             }
             // If the liquidity is in the lending pool and the estimated price after the swap is outside the range, do nothing.
@@ -183,7 +183,7 @@ contract LendingHook is BaseHook {
         // withdraw liquidity from lending pool into this contract
         lendingPool.withdraw(userPoolTokenBalance);
         // call uniswap deposit liquidity
-        uniswapPool.depositLiquidity(userPoolTokenBalance);
+        uniswapPool.depositLiquidity(userPoolTokenBalance, 0);
     }
 
     function convertSqrtPriceX96ToPrice(
@@ -220,7 +220,9 @@ contract LendingHook is BaseHook {
 
 // INTERFACES
 interface IUniswapPool {
-    function withdrawLiquidity(uint256 liquidityTokens) external;
+    function withdrawLiquidity(
+        uint256 liquidityTokens
+    ) external returns (uint256, uint256);
 
     function depositLiquidity(
         uint256 amountTokenA,
