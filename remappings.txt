@@ -3,3 +3,5 @@
 @buttonwood-protocol/button-wrappers/=lib/button-wrappers/
 @uniswap/lib/=lib/solidity-lib/
 forge-std/=lib/forge-std/src/
+@uniswap/v4-core/=lib/v4-core/
+@uniswap/v4-periphery/=lib/v4-periphery/
